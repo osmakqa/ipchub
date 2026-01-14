@@ -350,7 +350,7 @@ const SurveillanceHub: React.FC = () => {
         ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full lg:w-20 lg:translate-x-0'}
       `}>
         <div className="p-6 flex items-center justify-between min-w-[256px] lg:min-w-0">
-          {isSidebarOpen && <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Command Center</span>}
+          {isSidebarOpen && <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Navigation</span>}
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-white/10 rounded-lg text-slate-400">
             {isSidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
           </button>

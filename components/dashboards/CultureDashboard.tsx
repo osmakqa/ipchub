@@ -4,6 +4,7 @@ import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
 import { getCultureReports, updateCultureReport, deleteRecord } from '../../services/ipcService';
 import { AREAS } from '../../constants';
 import { 
@@ -38,7 +39,7 @@ interface Props {
 
 const CultureDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, validatePassword } = useAuth();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'analysis'>(initialViewMode || 'list');
@@ -46,6 +47,9 @@ const CultureDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
   const [formModal, setFormModal] = useState<{ show: boolean, item: any | null, isEditable: boolean }>({
     show: false, item: null, isEditable: false
   });
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+  const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
 
   const [filterArea, setFilterArea] = useState('');
   const [filterOrganism, setFilterOrganism] = useState('');
@@ -159,14 +163,34 @@ const CultureDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
     loadData(); 
   };
 
-  const handleDelete = async () => {
-    if (!formModal.item) return;
-    if (!window.confirm(`Permanently delete the culture report for ${formModal.item.lastName}? This action cannot be undone.`)) return;
+  const promptDeleteConfirmation = (item: any) => {
+    setItemToDelete(item);
+    setShowPasswordConfirm(true);
+  };
+
+  const handlePasswordConfirmed = async (password: string) => {
+    if (!itemToDelete || !user) return;
+
+    setPasswordConfirmLoading(true);
+    if (!validatePassword(user, password)) {
+      alert("Incorrect password. Deletion failed.");
+      setPasswordConfirmLoading(false);
+      return;
+    }
+
     try {
-      await deleteRecord('reports_culture', formModal.item.id);
+      await deleteRecord('reports_culture', itemToDelete.id);
       setFormModal({ show: false, item: null, isEditable: false });
+      setShowPasswordConfirm(false);
+      setItemToDelete(null);
       loadData();
-    } catch (e) { alert("Failed to delete record."); }
+    } catch (e) { 
+      const msg = e instanceof Error ? e.message : "Failed to delete record.";
+      console.error("Delete Operation Error in Dashboard:", e);
+      alert(msg); 
+    } finally {
+      setPasswordConfirmLoading(false);
+    }
   };
 
   const content = (
@@ -281,7 +305,7 @@ const CultureDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
                               <button onClick={() => setFormModal(prev => ({ ...prev, isEditable: true }))} className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold">
                                 <Edit3 size={16}/> Edit
                               </button>
-                              <button onClick={handleDelete} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
+                              <button onClick={() => promptDeleteConfirmation(formModal.item)} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
                                 <Trash2 size={16}/> Delete
                               </button>
                             </>
@@ -294,7 +318,7 @@ const CultureDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
                         {/* Section 1: Patient ID */}
                         <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-5">
                             <h3 className="font-black text-sm text-slate-800 flex items-center gap-2 uppercase tracking-wide border-b pb-3">
-                              <Users size={18} className="text-teal-600"/> Patient Information
+                              <Users size={18} className="text-teal-600"/> Patient Identification
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 <Input label="Hospital Number" name="hospitalNumber" value={formModal.item.hospitalNumber} onChange={handleInputChange} disabled={!formModal.isEditable} />
@@ -359,6 +383,15 @@ const CultureDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
                 </div>
             </div>
         )}
+
+        <PasswordConfirmModal
+          show={showPasswordConfirm}
+          onClose={() => setShowPasswordConfirm(false)}
+          onConfirm={handlePasswordConfirmed}
+          loading={passwordConfirmLoading}
+          title="Confirm Lab Report Deletion"
+          description={`Enter your password to permanently delete the lab report for ${itemToDelete?.lastName || ''}, ${itemToDelete?.firstName || ''}.`}
+        />
     </div>
   );
 

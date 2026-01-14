@@ -4,6 +4,7 @@ import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
 import { getHAIReports, updateHAIReport, deleteRecord } from '../../services/ipcService';
 import { 
   AREAS, 
@@ -49,7 +50,7 @@ interface Props {
 
 const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, validatePassword } = useAuth();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'analysis'>(initialViewMode || 'list');
@@ -57,6 +58,9 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
   const [formModal, setFormModal] = useState<{ show: boolean, item: any | null, isEditable: boolean }>({
     show: false, item: null, isEditable: false
   });
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+  const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
 
   const [filterType, setFilterType] = useState('');
   const [filterArea, setFilterArea] = useState('');
@@ -75,10 +79,15 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
 
   const loadData = async () => {
     setLoading(true);
-    const reports = await getHAIReports();
-    reports.sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
-    setData(reports);
-    setLoading(false);
+    try {
+      const reports = await getHAIReports();
+      reports.sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
+      setData(reports);
+    } catch (e) {
+      console.error("Load failed", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatName = (last: string, first: string) => {
@@ -186,19 +195,46 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
   };
 
   const saveChanges = async () => { 
-    await updateHAIReport(formModal.item); 
-    setFormModal({ show: false, item: null, isEditable: false }); 
-    loadData(); 
+    try {
+      await updateHAIReport(formModal.item); 
+      setFormModal({ show: false, item: null, isEditable: false }); 
+      loadData(); 
+    } catch (e) {
+      alert("Failed to update: " + (e instanceof Error ? e.message : "Unknown error"));
+    }
   };
 
-  const handleDelete = async () => {
-    if (!formModal.item) return;
-    if (!window.confirm(`Permanently delete the record for ${formModal.item.lastName}? This action cannot be undone.`)) return;
+  const promptDeleteConfirmation = (item: any) => {
+    setItemToDelete(item);
+    setShowPasswordConfirm(true);
+  };
+
+  const handlePasswordConfirmed = async (password: string) => {
+    if (!itemToDelete || !user) return;
+
+    setPasswordConfirmLoading(true);
+    if (!validatePassword(user, password)) {
+      alert("Incorrect password. Deletion failed.");
+      setPasswordConfirmLoading(false);
+      return;
+    }
+
     try {
-      await deleteRecord('reports_hai', formModal.item.id);
-      setFormModal({ show: false, item: null, isEditable: false });
-      loadData();
-    } catch (e) { alert("Failed to delete record."); }
+      const success = await deleteRecord('reports_hai', itemToDelete.id);
+      
+      if (success) {
+        setFormModal({ show: false, item: null, isEditable: false });
+        setShowPasswordConfirm(false);
+        setItemToDelete(null);
+        await loadData();
+      }
+    } catch (e) { 
+      const msg = e instanceof Error ? e.message : "Failed to delete record.";
+      console.error("Delete Operation Error in Dashboard:", e);
+      alert(msg); 
+    } finally { 
+      setPasswordConfirmLoading(false);
+    }
   };
 
   const content = (
@@ -410,7 +446,7 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                               <button onClick={() => setFormModal(prev => ({ ...prev, isEditable: true }))} className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold">
                                 <Edit3 size={16}/> Edit
                               </button>
-                              <button onClick={handleDelete} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
+                              <button onClick={() => promptDeleteConfirmation(formModal.item)} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
                                 <Trash2 size={16}/> Delete
                               </button>
                             </>
@@ -475,6 +511,15 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                 </div>
             </div>
         )}
+
+        <PasswordConfirmModal
+          show={showPasswordConfirm}
+          onClose={() => setShowPasswordConfirm(false)}
+          onConfirm={handlePasswordConfirmed}
+          loading={passwordConfirmLoading}
+          title="Confirm HAI Record Deletion"
+          description={`Enter your password to permanently delete the HAI record for ${itemToDelete?.lastName || ''}, ${itemToDelete?.firstName || ''}.`}
+        />
     </div>
   );
 

@@ -4,6 +4,7 @@ import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
 import { getTBReports, updateTBReport, deleteRecord } from '../../services/ipcService';
 import { 
   AREAS, 
@@ -54,7 +55,7 @@ interface Props {
 
 const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, validatePassword } = useAuth();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'analysis'>(initialViewMode || 'list');
@@ -62,6 +63,9 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
   const [formModal, setFormModal] = useState<{ show: boolean, item: any | null, isEditable: boolean }>({
     show: false, item: null, isEditable: false
   });
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+  const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
 
   const [filterArea, setFilterArea] = useState('');
   const [filterOutcome, setFilterOutcome] = useState('Active');
@@ -222,14 +226,34 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
     loadData();
   };
 
-  const handleDelete = async () => {
-    if (!formModal.item) return;
-    if (!window.confirm(`Permanently delete the TB registry record for ${formModal.item.lastName}? This cannot be undone.`)) return;
+  const promptDeleteConfirmation = (item: any) => {
+    setItemToDelete(item);
+    setShowPasswordConfirm(true);
+  };
+
+  const handlePasswordConfirmed = async (password: string) => {
+    if (!itemToDelete || !user) return;
+
+    setPasswordConfirmLoading(true);
+    if (!validatePassword(user, password)) {
+      alert("Incorrect password. Deletion failed.");
+      setPasswordConfirmLoading(false);
+      return;
+    }
+
     try {
-      await deleteRecord('reports_tb', formModal.item.id);
+      await deleteRecord('reports_tb', itemToDelete.id);
       setFormModal({ show: false, item: null, isEditable: false });
+      setShowPasswordConfirm(false);
+      setItemToDelete(null);
       loadData();
-    } catch (e) { alert("Failed to delete record."); }
+    } catch (e) { 
+      const msg = e instanceof Error ? e.message : "Failed to delete record.";
+      console.error("Delete Operation Error in Dashboard:", e);
+      alert(msg); 
+    } finally {
+      setPasswordConfirmLoading(false);
+    }
   };
 
   const COLORS = ['#eab308', '#3b82f6', '#ef4444', '#10b981', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
@@ -349,8 +373,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                       <div className="px-3 py-2 border-b border-slate-50 bg-slate-50/30">
                         <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Data Cards</span>
                       </div>
-                      <div className="flex flex-col divide-y divide-slate-50">
-                        <button onClick={() => { setFilterOutcome('Active'); setFilterNoDx(false); }} className="p-4 flex flex-col gap-0.5 text-left hover:bg-slate-50 transition-colors group">
+                      <button onClick={() => { setFilterOutcome('Active'); setFilterNoDx(false); }} className="p-4 flex flex-col gap-0.5 text-left hover:bg-slate-50 transition-colors group">
                             <span className="text-[7px] font-black uppercase text-slate-400 group-hover:text-amber-600 transition-colors">Total Active</span>
                             <span className="text-2xl font-black text-slate-900 leading-none">{summaryStats.totalActive}</span>
                         </button>
@@ -358,8 +381,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                             <div className="flex items-center justify-between"><span className="text-[7px] font-black uppercase text-slate-400 group-hover:text-red-600 transition-colors">No Dx Result</span><AlertCircle size={10} className="text-red-400 opacity-50" /></div>
                             <span className="text-2xl font-black text-red-600 leading-none">{summaryStats.missingDiagnostics}</span>
                         </button>
-                      </div>
-                  </div>
+                  </div> {/* Removed extra closing div that was on line 503 */}
 
                   <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-2">
                       <div className="flex items-center gap-1.5 border-b border-slate-50 pb-1.5"><Home size={10} className="text-slate-400" /><span className="text-[8px] font-black uppercase tracking-widest text-slate-400 leading-none">Isolation Census</span></div>
@@ -395,7 +417,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                               <button onClick={() => setFormModal(prev => ({ ...prev, isEditable: true }))} className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold">
                                 <Edit3 size={16}/> Edit
                               </button>
-                              <button onClick={handleDelete} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
+                              <button onClick={() => promptDeleteConfirmation(formModal.item)} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
                                 <Trash2 size={16}/> Delete
                               </button>
                             </>
@@ -458,6 +480,15 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                 </div>
             </div>
         )}
+
+        <PasswordConfirmModal
+          show={showPasswordConfirm}
+          onClose={() => setShowPasswordConfirm(false)}
+          onConfirm={handlePasswordConfirmed}
+          loading={passwordConfirmLoading}
+          title="Confirm TB Record Deletion"
+          description={`Enter your password to permanently delete the TB record for ${itemToDelete?.lastName || ''}, ${itemToDelete?.firstName || ''}.`}
+        />
     </div>
   );
 

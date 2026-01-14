@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
 import { getPendingReports, validateReport, deletePendingReport } from '../../services/ipcService';
 import { 
     AREAS, 
@@ -46,12 +46,17 @@ import {
 
 const PendingTasksDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, validatePassword } = useAuth();
     const [pending, setPending] = useState<any>({ hai: [], isolation: [], tb: [], culture: [], notifiable: [], needlestick: [] });
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'hai' | 'isolation' | 'tb' | 'culture' | 'notifiable' | 'needlestick'>('hai');
     const [validatingId, setValidatingId] = useState<string | null>(null);
     const [reviewModal, setReviewModal] = useState<{ show: boolean, item: any | null }>({ show: false, item: null });
+
+    const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+    const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
+
 
     useEffect(() => {
         if (!isAuthenticated) { navigate('/'); return; }
@@ -75,17 +80,40 @@ const PendingTasksDashboard: React.FC = () => {
                 loadPending();
             }
         } catch (error) {
-            alert("Error validating report.");
+            alert(error instanceof Error ? error.message : "Error validating report.");
         } finally {
             setValidatingId(null);
         }
     };
 
-    const handleDelete = async (type: any, id: string, e?: React.MouseEvent) => {
-        if (e) e.stopPropagation();
-        if (!window.confirm("Are you sure you want to discard this pending report?")) return;
-        await deletePendingReport(type, id);
-        loadPending();
+    const promptDeleteConfirmation = (type: any, item: any) => {
+        setItemToDelete({ type, ...item });
+        setShowPasswordConfirm(true);
+    };
+
+    const handlePasswordConfirmed = async (password: string) => {
+        if (!itemToDelete || !user) return;
+
+        setPasswordConfirmLoading(true);
+        if (!validatePassword(user, password)) {
+            alert("Incorrect password. Deletion failed.");
+            setPasswordConfirmLoading(false);
+            return;
+        }
+
+        try {
+            await deletePendingReport(itemToDelete.type, itemToDelete.id);
+            setReviewModal({ show: false, item: null }); // Close review modal if it was open
+            setShowPasswordConfirm(false);
+            setItemToDelete(null);
+            loadPending();
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : "Failed to delete pending report.";
+            console.error("Delete Operation Error in PendingTasksDashboard:", error);
+            alert(msg);
+        } finally {
+            setPasswordConfirmLoading(false);
+        }
     };
 
     const handleModalInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -192,7 +220,7 @@ const PendingTasksDashboard: React.FC = () => {
                                                 <span className="text-gray-600">{item.dateReported}</span>
                                             </div>
                                             <button 
-                                                onClick={(e) => handleDelete(activeTab, item.id, e)} 
+                                                onClick={(e) => { e.stopPropagation(); promptDeleteConfirmation(activeTab, item); }} 
                                                 className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                                                 title="Discard"
                                             >
@@ -379,6 +407,14 @@ const PendingTasksDashboard: React.FC = () => {
                     </div>
                 </div>
             )}
+            <PasswordConfirmModal
+                show={showPasswordConfirm}
+                onClose={() => setShowPasswordConfirm(false)}
+                onConfirm={handlePasswordConfirmed}
+                loading={passwordConfirmLoading}
+                title="Confirm Discard"
+                description={`Enter your password to permanently discard the pending ${itemToDelete?.type || ''} report for ${itemToDelete?.hcwName || itemToDelete?.lastName || ''}, ${itemToDelete?.firstName || ''}.`}
+            />
         </Layout>
     );
 };

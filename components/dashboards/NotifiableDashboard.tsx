@@ -4,7 +4,8 @@ import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { getNotifiableReports, updateNotifiableReport, deleteRecord } from '../../services/ipcService';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
+import { getNotifiableReports, updateNotifiableReport, deleteRecord, syncToGoogleSheets } from '../../services/ipcService';
 import { AREAS, NOTIFIABLE_DISEASES, PATIENT_OUTCOMES, BARANGAYS } from '../../constants';
 import { 
   ChevronLeft, 
@@ -27,7 +28,10 @@ import {
   Bell,
   PlusCircle,
   Edit3,
-  Trash2
+  Trash2,
+  Database,
+  CloudDownload,
+  Loader2
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend, 
@@ -41,13 +45,17 @@ interface Props {
 
 const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, validatePassword } = useAuth();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'analysis'>(initialViewMode || 'list');
   const [formModal, setFormModal] = useState<{ show: boolean, item: any | null, isEditable: boolean }>({
     show: false, item: null, isEditable: false
   });
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+  const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
 
   const [filterDisease, setFilterDisease] = useState('');
   const [filterArea, setFilterArea] = useState('');
@@ -153,14 +161,51 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewM
     loadData();
   };
 
-  const handleDelete = async () => {
-    if (!formModal.item) return;
-    if (!window.confirm(`Permanently delete the notifiable disease record for ${formModal.item.lastName}? This cannot be undone.`)) return;
+  const promptDeleteConfirmation = (item: any) => {
+    setItemToDelete(item);
+    setShowPasswordConfirm(true);
+  };
+
+  const handlePasswordConfirmed = async (password: string) => {
+    if (!itemToDelete || !user) return;
+
+    setPasswordConfirmLoading(true);
+    if (!validatePassword(user, password)) {
+      alert("Incorrect password. Deletion failed.");
+      setPasswordConfirmLoading(false);
+      return;
+    }
+
     try {
-      await deleteRecord('reports_notifiable', formModal.item.id);
+      await deleteRecord('report_notif', itemToDelete.id);
       setFormModal({ show: false, item: null, isEditable: false });
+      setShowPasswordConfirm(false);
+      setItemToDelete(null);
       loadData();
-    } catch (e) { alert("Failed to delete record."); }
+    } catch (e) { 
+      const msg = e instanceof Error ? e.message : "Failed to delete record.";
+      console.error("Delete Operation Error in Dashboard:", e);
+      alert(msg); 
+    } finally {
+      setPasswordConfirmLoading(false);
+    }
+  };
+
+  const handleBulkSync = async () => {
+    if (!window.confirm("Sync all currently filtered records to Google Sheets? This will create redundant entries if already synced.")) return;
+    setSyncing(true);
+    let successCount = 0;
+    try {
+      for (const record of filteredData) {
+        const ok = await syncToGoogleSheets(record);
+        if (ok) successCount++;
+      }
+      alert(`Successfully synced ${successCount} records to Google Sheets.`);
+    } catch (err) {
+      alert("Error during bulk sync.");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#06b6d4', '#ec4899', '#111827'];
@@ -175,9 +220,21 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewM
                     <button onClick={() => setViewMode('analysis')} className={`px-3 py-1 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'analysis' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500'}`}><BarChart2 size={14} /> Analysis</button>
                 </div>
             </div>
-            <button onClick={() => navigate('/report-disease')} className="bg-red-600 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-red-700 flex items-center gap-2 transition-all active:scale-95 text-xs">
-              <PlusCircle size={18} /> New Report
-            </button>
+            <div className="flex items-center gap-2">
+                {isAuthenticated && (
+                  <button 
+                    onClick={handleBulkSync}
+                    disabled={syncing || filteredData.length === 0}
+                    className="bg-white text-slate-600 px-4 py-2 rounded-lg font-black uppercase tracking-widest border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 text-xs"
+                  >
+                    {syncing ? <Loader2 size={18} className="animate-spin" /> : <CloudDownload size={18} />}
+                    Backup to Sheets
+                  </button>
+                )}
+                <button onClick={() => navigate('/report-disease')} className="bg-red-600 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-red-700 flex items-center gap-2 transition-all active:scale-95 text-xs">
+                  <PlusCircle size={18} /> New Report
+                </button>
+            </div>
         </div>
 
         <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-200 overflow-x-auto print:hidden">
@@ -316,7 +373,7 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewM
                               <button onClick={() => setFormModal(prev => ({ ...prev, isEditable: true }))} className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold">
                                 <Edit3 size={16}/> Edit
                               </button>
-                              <button onClick={handleDelete} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
+                              <button onClick={() => promptDeleteConfirmation(formModal.item)} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
                                 <Trash2 size={16}/> Delete
                               </button>
                             </>
@@ -377,6 +434,15 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewM
                 </div>
             </div>
         )}
+
+        <PasswordConfirmModal
+          show={showPasswordConfirm}
+          onClose={() => setShowPasswordConfirm(false)}
+          onConfirm={handlePasswordConfirmed}
+          loading={passwordConfirmLoading}
+          title="Confirm Disease Record Deletion"
+          description={`Enter your password to permanently delete the notifiable disease record for ${itemToDelete?.lastName || ''}, ${itemToDelete?.firstName || ''}.`}
+        />
       </div>
   );
 

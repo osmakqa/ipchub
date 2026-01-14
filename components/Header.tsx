@@ -109,7 +109,7 @@ const Header: React.FC = () => {
               className={`flex items-center gap-2 px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${appMode === 'present' ? 'bg-white text-[var(--osmak-green)] shadow-lg scale-105' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
             >
               <MonitorPlay size={14} />
-              <span className="hidden sm:inline">Executive</span>
+              <span className="hidden sm:inline">Presenting</span>
             </button>
           </div>
         )}

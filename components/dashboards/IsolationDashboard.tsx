@@ -4,6 +4,7 @@ import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
 import { getIsolationReports, updateIsolationReport, deleteRecord } from '../../services/ipcService';
 import { AREAS, ISOLATION_AREAS, PATIENT_OUTCOMES } from '../../constants';
 import { 
@@ -41,7 +42,7 @@ interface Props {
 
 const IsolationDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, validatePassword } = useAuth();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'analysis'>(initialViewMode || 'list');
@@ -49,6 +50,9 @@ const IsolationDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMo
   const [formModal, setFormModal] = useState<{ show: boolean, item: any | null, isEditable: boolean }>({
     show: false, item: null, isEditable: false
   });
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+  const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
 
   const [filterArea, setFilterArea] = useState('');
   const [filterOutcome, setFilterOutcome] = useState('Active');
@@ -146,14 +150,34 @@ const IsolationDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMo
     loadData();
   };
 
-  const handleDelete = async () => {
-    if (!formModal.item) return;
-    if (!window.confirm(`Permanently delete the isolation record for ${formModal.item.lastName}? This action cannot be undone.`)) return;
+  const promptDeleteConfirmation = (item: any) => {
+    setItemToDelete(item);
+    setShowPasswordConfirm(true);
+  };
+
+  const handlePasswordConfirmed = async (password: string) => {
+    if (!itemToDelete || !user) return;
+
+    setPasswordConfirmLoading(true);
+    if (!validatePassword(user, password)) {
+      alert("Incorrect password. Deletion failed.");
+      setPasswordConfirmLoading(false);
+      return;
+    }
+
     try {
-      await deleteRecord('reports_isolation', formModal.item.id);
+      await deleteRecord('reports_isolation', itemToDelete.id);
       setFormModal({ show: false, item: null, isEditable: false });
+      setShowPasswordConfirm(false);
+      setItemToDelete(null);
       loadData();
-    } catch (e) { alert("Failed to delete record."); }
+    } catch (e) { 
+      const msg = e instanceof Error ? e.message : "Failed to delete record.";
+      console.error("Delete Operation Error in Dashboard:", e);
+      alert(msg); 
+    } finally {
+      setPasswordConfirmLoading(false);
+    }
   };
 
   const content = (
@@ -309,7 +333,7 @@ const IsolationDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMo
                               <button onClick={() => setFormModal(prev => ({ ...prev, isEditable: true }))} className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold">
                                 <Edit3 size={16}/> Edit
                               </button>
-                              <button onClick={handleDelete} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
+                              <button onClick={() => promptDeleteConfirmation(formModal.item)} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
                                 <Trash2 size={16}/> Delete
                               </button>
                             </>
@@ -376,6 +400,15 @@ const IsolationDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMo
                 </div>
             </div>
         )}
+
+        <PasswordConfirmModal
+          show={showPasswordConfirm}
+          onClose={() => setShowPasswordConfirm(false)}
+          onConfirm={handlePasswordConfirmed}
+          loading={passwordConfirmLoading}
+          title="Confirm Isolation Record Deletion"
+          description={`Enter your password to permanently delete the isolation record for ${itemToDelete?.lastName || ''}, ${itemToDelete?.firstName || ''}.`}
+        />
     </div>
   );
 

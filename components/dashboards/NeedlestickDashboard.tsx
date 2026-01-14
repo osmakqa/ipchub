@@ -4,6 +4,7 @@ import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
 import InteractiveBodyMap from '../ui/InteractiveBodyMap';
 import { getNeedlestickReports, updateNeedlestickReport, deleteRecord } from '../../services/ipcService';
 import { AREAS, DEVICES_NEEDLE, DEVICES_SURGICAL } from '../../constants';
@@ -57,13 +58,16 @@ const JOB_CATEGORIES_NS = [
 
 const NeedlestickDashboard: React.FC<Props> = ({ isNested }) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, validatePassword } = useAuth();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'analysis'>('list');
   const [formModal, setFormModal] = useState<{ show: boolean, item: any | null, isEditable: boolean }>({
     show: false, item: null, isEditable: false
   });
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+  const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
 
   const [filterJob, setFilterJob] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
@@ -130,14 +134,34 @@ const NeedlestickDashboard: React.FC<Props> = ({ isNested }) => {
     loadData(); 
   };
 
-  const handleDelete = async () => {
-    if (!formModal.item) return;
-    if (!window.confirm(`Permanently delete the occupational injury record for ${formModal.item.hcwName}? This action cannot be undone.`)) return;
+  const promptDeleteConfirmation = (item: any) => {
+    setItemToDelete(item);
+    setShowPasswordConfirm(true);
+  };
+
+  const handlePasswordConfirmed = async (password: string) => {
+    if (!itemToDelete || !user) return;
+
+    setPasswordConfirmLoading(true);
+    if (!validatePassword(user, password)) {
+      alert("Incorrect password. Deletion failed.");
+      setPasswordConfirmLoading(false);
+      return;
+    }
+
     try {
-      await deleteRecord('reports_needlestick', formModal.item.id);
+      await deleteRecord('reports_needlestick', itemToDelete.id);
       setFormModal({ show: false, item: null, isEditable: false });
+      setShowPasswordConfirm(false);
+      setItemToDelete(null);
       loadData();
-    } catch (e) { alert("Failed to delete record."); }
+    } catch (e) { 
+      const msg = e instanceof Error ? e.message : "Failed to delete record.";
+      console.error("Delete Operation Error in Dashboard:", e);
+      alert(msg); 
+    } finally {
+      setPasswordConfirmLoading(false);
+    }
   };
 
   const content = (
@@ -235,7 +259,7 @@ const NeedlestickDashboard: React.FC<Props> = ({ isNested }) => {
                               <button onClick={() => setFormModal(prev => ({ ...prev, isEditable: true }))} className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold">
                                 <Edit3 size={16}/> Edit
                               </button>
-                              <button onClick={handleDelete} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
+                              <button onClick={() => promptDeleteConfirmation(formModal.item)} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
                                 <Trash2 size={16}/> Delete
                               </button>
                             </>
@@ -298,6 +322,15 @@ const NeedlestickDashboard: React.FC<Props> = ({ isNested }) => {
                 </div>
             </div>
         )}
+
+        <PasswordConfirmModal
+          show={showPasswordConfirm}
+          onClose={() => setShowPasswordConfirm(false)}
+          onConfirm={handlePasswordConfirmed}
+          loading={passwordConfirmLoading}
+          title="Confirm Incident Deletion"
+          description={`Enter your password to permanently delete the incident report for ${itemToDelete?.hcwName || ''}.`}
+        />
     </div>
   );
 

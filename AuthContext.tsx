@@ -9,6 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   appMode: AppMode;
   setAppMode: (mode: AppMode) => void;
+  validatePassword: (name: string, password: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,8 +41,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('ipc_user');
   };
 
+  const validatePassword = (name: string, password: string) => {
+    return COORDINATORS[name] === password;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, appMode, setAppMode }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, appMode, setAppMode, validatePassword }}>
       {children}
     </AuthContext.Provider>
   );

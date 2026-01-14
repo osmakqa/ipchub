@@ -9,6 +9,28 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/**
+ * GOOGLE SHEETS BACKUP CONFIGURATION
+ */
+const GOOGLE_SHEETS_WEBHOOK_URL = ""; 
+
+// --- TABLE MAPPING ---
+
+export const TYPE_TO_TABLE: Record<string, string> = {
+  'HAI': 'reports_hai',
+  'Notifiable Disease': 'report_notif',
+  'Needlestick Injury': 'reports_needlestick',
+  'Isolation Admission': 'reports_isolation',
+  'TB Report': 'reports_tb',
+  'Culture Report': 'reports_culture',
+  'hai': 'reports_hai',
+  'notifiable': 'report_notif',
+  'needlestick': 'reports_needlestick',
+  'isolation': 'reports_isolation',
+  'tb': 'reports_tb',
+  'culture': 'reports_culture'
+};
+
 // --- UTILS ---
 
 const toTitleCase = (str: string) => {
@@ -18,30 +40,39 @@ const toTitleCase = (str: string) => {
   ).join(' ');
 };
 
+/**
+ * Clean data for Supabase
+ */
 const sanitizeData = (data: any) => {
   const sanitized = { ...data };
   const nameFields = ['lastName', 'firstName', 'middleName', 'reporterName', 'hcwName', 'organism', 'barangay', 'city', 'supervisorName', 'ipcName', 'patientName', 'nurseInCharge'];
   
+  // CRITICAL: We must NOT delete 'id' if it is a valid ID
+  if (sanitized.id && typeof sanitized.id === 'string') {
+    if (sanitized.id.includes('temp') || sanitized.id.includes('form') || sanitized.id.length < 5) {
+      delete sanitized.id;
+    }
+  }
+
   for (const key in sanitized) {
-    if (typeof sanitized[key] === 'string') {
-      sanitized[key] = sanitized[key].trim();
-      if (nameFields.includes(key)) {
-        sanitized[key] = toTitleCase(sanitized[key]);
+    const value = sanitized[key];
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed === "") {
+        sanitized[key] = null;
+        continue;
       }
+      if (nameFields.includes(key)) {
+        sanitized[key] = toTitleCase(trimmed);
+      } else {
+        sanitized[key] = trimmed;
+      }
+    }
+    if (Array.isArray(value) && value.length === 0) {
+      sanitized[key] = [];
     }
   }
   return sanitized;
-};
-
-// --- TABLE MAPPING ---
-
-const TYPE_TO_TABLE: Record<string, string> = {
-  'HAI': 'reports_hai',
-  'Notifiable Disease': 'reports_notifiable',
-  'Needlestick Injury': 'reports_needlestick',
-  'Isolation Admission': 'reports_isolation',
-  'TB Report': 'reports_tb',
-  'Culture Report': 'reports_culture'
 };
 
 // --- ACCESSORS ---
@@ -52,7 +83,7 @@ export const getHAIReports = async () => {
 };
 
 export const getNotifiableReports = async () => {
-  const { data } = await supabase.from('reports_notifiable').select('*').eq('validationStatus', 'validated');
+  const { data } = await supabase.from('report_notif').select('*').eq('validationStatus', 'validated');
   return data || [];
 };
 
@@ -109,12 +140,14 @@ export const getAuditSchedules = async () => {
 // --- SUBMISSIONS ---
 
 export const submitCensusLog = async (data: any) => {
-  const { error } = await supabase.from('census_logs').upsert({ ...data, id: data.id || undefined });
+  const sanitized = sanitizeData(data);
+  const { error } = await supabase.from('census_logs').upsert(sanitized);
   return !error;
 };
 
 export const submitHHAudit = async (data: any) => {
-  const { error } = await supabase.from('audit_hand_hygiene').insert([data]);
+  const sanitized = sanitizeData(data);
+  const { error } = await supabase.from('audit_hand_hygiene').insert([sanitized]);
   return !error;
 };
 
@@ -125,7 +158,8 @@ export const submitBundleAudit = async (data: any) => {
 };
 
 export const submitAreaAudit = async (data: any) => {
-  const { error } = await supabase.from('audit_area').insert([{ ...data, dateLogged: new Date().toISOString() }]);
+  const sanitized = sanitizeData(data);
+  const { error } = await supabase.from('audit_area').insert([{ ...sanitized, dateLogged: new Date().toISOString() }]);
   return !error;
 };
 
@@ -141,21 +175,65 @@ export const updateActionPlanStatus = async (id: string, status: string) => {
 };
 
 export const submitAuditSchedule = async (data: any) => {
-  const { error } = await supabase.from('audit_schedules').insert([data]);
-  return !error;
-};
-
-export const deleteAuditSchedule = async (id: string) => {
-  const { error } = await supabase.from('audit_schedules').delete().eq('id', id);
+  const sanitized = sanitizeData(data);
+  const { error } = await supabase.from('audit_schedules').insert([sanitized]);
   return !error;
 };
 
 // --- DELETION ---
 
+/**
+ * Enhanced global delete function
+ */
 export const deleteRecord = async (table: string, id: string) => {
-  const { error } = await supabase.from(table).delete().eq('id', id);
-  if (error) throw new Error(error.message);
+  if (!id) {
+    console.error("deleteRecord called without ID for table:", table);
+    throw new Error("Deletion Failed: Missing record ID.");
+  }
+  
+  console.log(`Starting deletion: Table=${table}, ID=${id}`);
+
+  // We use .select() to force Supabase to return the row it deleted.
+  // If the array is empty, it means either the ID didn't exist or RLS blocked the deletion.
+  const { data, error } = await supabase
+    .from(table)
+    .delete()
+    .eq('id', id)
+    .select();
+  
+  if (error) {
+    console.error("Supabase API Error during delete:", error);
+    throw new Error(`Database Error: ${error.message} (Code: ${error.code})`);
+  }
+
+  if (!data || data.length === 0) {
+    console.warn("Delete request returned success but 0 rows were actually removed.");
+    throw new Error("Deletion Failed: Record not found or database permissions (RLS) are blocking this action.");
+  }
+
+  console.log("Deletion successful:", data[0]);
   return true;
+};
+
+export const deleteAuditSchedule = async (id: string) => {
+  return deleteRecord('audit_schedules', id);
+};
+
+// --- BACKUP / SYNC ---
+
+export const syncToGoogleSheets = async (data: any) => {
+  if (!GOOGLE_SHEETS_WEBHOOK_URL) return false;
+  try {
+    await fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return true;
+  } catch (error) {
+    return false;
+  }
 };
 
 // --- PENDING / COORDINATOR WORKFLOW ---
@@ -166,7 +244,7 @@ export const getPendingReports = async () => {
     supabase.from('reports_isolation').select('*').eq('validationStatus', 'pending'),
     supabase.from('reports_tb').select('*').eq('validationStatus', 'pending'),
     supabase.from('reports_culture').select('*').eq('validationStatus', 'pending'),
-    supabase.from('reports_notifiable').select('*').eq('validationStatus', 'pending'),
+    supabase.from('report_notif').select('*').eq('validationStatus', 'pending'),
     supabase.from('reports_needlestick').select('*').eq('validationStatus', 'pending'),
   ]);
 
@@ -181,24 +259,31 @@ export const getPendingReports = async () => {
 };
 
 export const deletePendingReport = async (type: string, id: string) => {
-  const table = TYPE_TO_TABLE[Object.keys(TYPE_TO_TABLE).find(k => k.toLowerCase().includes(type)) || ''] || `reports_${type}`;
-  const { error } = await supabase.from(table).delete().eq('id', id);
-  return !error;
+  const table = TYPE_TO_TABLE[type] || `reports_${type}`;
+  return deleteRecord(table, id);
 };
 
 export const validateReport = async (type: string, id: string, coordinator: string, updatedData?: any) => {
-  const table = TYPE_TO_TABLE[Object.keys(TYPE_TO_TABLE).find(k => k.toLowerCase().includes(type)) || ''] || `reports_${type}`;
-  const { error } = await supabase.from(table).update({ 
-    ...(updatedData || {}), 
-    validationStatus: 'validated', 
-    validatedBy: coordinator 
-  }).eq('id', id);
-  return !error;
+  const table = TYPE_TO_TABLE[type] || `reports_${type}`;
+  const sanitized = sanitizeData(updatedData || {});
+  const entry = { ...sanitized, validationStatus: 'validated', validatedBy: coordinator };
+
+  const { error } = await supabase.from(table).update(entry).eq('id', id);
+  if (error) {
+      const msg = error.message || JSON.stringify(error);
+      throw new Error(`Validation Failed: ${msg}`);
+  }
+
+  if (type === 'notifiable' || type === 'Notifiable Disease') {
+    await syncToGoogleSheets({ ...entry, id });
+  }
+
+  return true;
 };
 
 export const submitReport = async (formType: string, data: any): Promise<boolean> => {
   const table = TYPE_TO_TABLE[formType];
-  if (!table) return false;
+  if (!table) throw new Error(`Invalid form type: ${formType}`);
   
   const sanitizedData = sanitizeData(data);
   const entry = { 
@@ -208,39 +293,53 @@ export const submitReport = async (formType: string, data: any): Promise<boolean
   };
   
   const { error } = await supabase.from(table).insert([entry]);
-  if (error) throw new Error(error.message);
+  if (error) {
+      const errorDetail = `[Code: ${error.code}] ${error.message}`;
+      throw new Error(errorDetail);
+  }
+
+  if (formType === 'Notifiable Disease') {
+    await syncToGoogleSheets(entry);
+  }
+
   return true;
 };
 
 // --- UPDATE HANDLERS ---
 
 export const updateHAIReport = async (data: any) => {
-  const { error } = await supabase.from('reports_hai').update(data).eq('id', data.id);
+  const sanitized = sanitizeData(data);
+  const { error } = await supabase.from('reports_hai').update(sanitized).eq('id', data.id);
   return !error;
 };
 
 export const updateNotifiableReport = async (data: any) => {
-  const { error } = await supabase.from('reports_notifiable').update(data).eq('id', data.id);
+  const sanitized = sanitizeData(data);
+  const { error } = await supabase.from('report_notif').update(sanitized).eq('id', data.id);
   return !error;
 };
 
 export const updateNeedlestickReport = async (data: any) => {
-  const { error } = await supabase.from('reports_needlestick').update(data).eq('id', data.id);
+  const sanitized = sanitizeData(data);
+  const { error } = await supabase.from('reports_needlestick').update(sanitized).eq('id', data.id);
   return !error;
 };
 
 export const updateIsolationReport = async (data: any) => {
-  const { error } = await supabase.from('reports_isolation').update(data).eq('id', data.id);
+  const sanitized = sanitizeData(data);
+  const { error } = await supabase.from('reports_isolation').update(sanitized).eq('id', data.id);
   return !error;
 };
 
 export const updateTBReport = async (data: any) => {
-  const { error } = await supabase.from('reports_tb').update(data).eq('id', data.id);
+  const sanitized = sanitizeData(data);
+  const { error } = await supabase.from('reports_tb').update(sanitized).eq('id', data.id);
   return !error;
 };
 
 export const updateCultureReport = async (data: any) => {
-  const { error } = await supabase.from('reports_culture').update(data).eq('id', data.id);
+  const sanitized = sanitizeData(data);
+  const { error } = await supabase.from('reports_culture').update(sanitized).eq('id', data.id);
   return !error;
 };
 
@@ -248,18 +347,15 @@ export const updateCultureReport = async (data: any) => {
 
 export const calculateInfectionRates = (censusLogs: any[], infections: any[]) => {
   const sum = (arr: any[], key: string) => arr.reduce((a, b) => a + (Number(b[key]) || 0), 0);
-  
   const count = (type: string, area?: string) => 
     infections.filter(inf => inf.haiType === type && (area ? inf.area === area : true)).length;
 
   const getRatesForArea = (areaLabel: string, areaKeyPrefix: string) => {
     const isOverall = areaLabel === "Overall";
     const patientDays = isOverall ? sum(censusLogs, 'overall') : sum(censusLogs, areaKeyPrefix);
-    
     const ventDaysKey = isOverall ? 'overallVent' : `${areaKeyPrefix}Vent`;
     const ifcDaysKey = isOverall ? 'overallIfc' : `${areaKeyPrefix}Ifc`;
     const centralLineDaysKey = isOverall ? 'overallCentral' : `${areaKeyPrefix}Central`;
-
     const ventDays = sum(censusLogs, ventDaysKey) || 1;
     const ifcDays = sum(censusLogs, ifcDaysKey) || 1;
     const centralDays = sum(censusLogs, centralLineDaysKey) || 1;

@@ -23,6 +23,8 @@ import {
 import { toPng } from 'html-to-image';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
+import { useAuth } from '../../AuthContext';
 import { AREAS } from '../../constants';
 import { getAuditSchedules, submitAuditSchedule, deleteAuditSchedule } from '../../services/ipcService';
 
@@ -38,6 +40,7 @@ const getAuditTypeDetails = (type: string) => {
 };
 
 const AuditSchedule: React.FC = () => {
+    const { user, validatePassword } = useAuth();
     const calendarRef = useRef<HTMLDivElement>(null);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -52,6 +55,10 @@ const AuditSchedule: React.FC = () => {
         area: '',
         areaOther: ''
     });
+
+    const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<any | null>(null); // To store the schedule item to delete
+    const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
 
     useEffect(() => {
         loadSchedules();
@@ -114,10 +121,33 @@ const AuditSchedule: React.FC = () => {
         loadSchedules();
     };
 
-    const handleDeleteSchedule = async (id: string) => {
-        if (!window.confirm("Remove this audit from schedule?")) return;
-        await deleteAuditSchedule(id);
-        loadSchedules();
+    const promptDeleteConfirmation = (item: any) => {
+        setItemToDelete(item);
+        setShowPasswordConfirm(true);
+    };
+
+    const handlePasswordConfirmed = async (password: string) => {
+        if (!itemToDelete || !user) return;
+
+        setPasswordConfirmLoading(true);
+        if (!validatePassword(user, password)) {
+            alert("Incorrect password. Deletion failed.");
+            setPasswordConfirmLoading(false);
+            return;
+        }
+
+        try {
+            await deleteAuditSchedule(itemToDelete.id);
+            setShowPasswordConfirm(false);
+            setItemToDelete(null);
+            loadSchedules();
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : "Failed to delete schedule.";
+            console.error("Delete Operation Error in AuditSchedule:", error);
+            alert(msg);
+        } finally {
+            setPasswordConfirmLoading(false);
+        }
     };
 
     const downloadCalendar = async () => {
@@ -291,7 +321,7 @@ const AuditSchedule: React.FC = () => {
                                                 </div>
                                             </div>
                                             <button 
-                                                onClick={() => handleDeleteSchedule(item.id)}
+                                                onClick={() => promptDeleteConfirmation(item)}
                                                 className="absolute top-4 right-4 p-2 text-slate-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all"
                                             >
                                                 <Trash2 size={16} />
@@ -387,6 +417,14 @@ const AuditSchedule: React.FC = () => {
                     </div>
                 </div>
             )}
+            <PasswordConfirmModal
+                show={showPasswordConfirm}
+                onClose={() => setShowPasswordConfirm(false)}
+                onConfirm={handlePasswordConfirmed}
+                loading={passwordConfirmLoading}
+                title="Confirm Schedule Deletion"
+                description={`Enter your password to remove the '${itemToDelete?.type || ''}' audit for ${itemToDelete?.area || ''} on ${itemToDelete?.date || ''} from the schedule.`}
+            />
         </div>
     );
 };
