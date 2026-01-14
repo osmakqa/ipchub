@@ -294,7 +294,7 @@ export const submitReport = async (formType: string, data: any): Promise<boolean
   
   const { error } = await supabase.from(table).insert([entry]);
   if (error) {
-      const errorDetail = `[Code: ${error.code}] ${error.message}`;
+      const errorDetail = `[Code: ${error.code}] ${error.code.includes('duplicate key') ? 'A record with this identifier already exists.' : error.message}`;
       throw new Error(errorDetail);
   }
 
@@ -463,17 +463,18 @@ export const extractCombinedCultureReport = async (base64Image: string): Promise
 };
 
 export const queryIPCAssistant = async (query: string, history: any[]): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
-    const context = history.map(h => `${h.role === 'user' ? 'Staff' : 'Assistant'}: ${h.text}`).join('\n');
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `${context}\nStaff: ${query}`,
-      config: {
-        systemInstruction: "You are the 'OsMak IPC Assistant'. Help staff with Infection Prevention and Control inquiries. Reference WHO and CDC standards. Be concise and clinical. If asked about hospital specific forms, refer to the Hub Manual."
-      }
-    });
-    return response.text || "I am unable to answer that right now.";
+    // const context = history.map(h => `${h.role === 'user' ? 'Staff' : 'Assistant'}: ${h.text}`).join('\n');
+    // const response = await ai.models.generateContent({
+    //   model: 'gemini-3-flash-preview',
+    //   contents: `${context}\nStaff: ${query}`,
+    //   config: {
+    //     systemInstruction: "You are the 'OsMak IPC Assistant'. Help staff with Infection Prevention and Control inquiries. Reference WHO and CDC standards. Be concise and clinical. If asked about hospital specific forms, refer to the Hub Manual."
+    //   }
+    // });
+    // return response.text || "I am unable to answer that right now.";
+    return "AI Assistant: This feature is currently under construction. Please check back later!";
   } catch (error) {
     return "AI Assistant offline. Please check connection.";
   }
