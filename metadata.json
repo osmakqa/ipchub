@@ -1,0 +1,8 @@
+{
+  "name": "Infection Prevention and Control Hub",
+  "description": "Unified IPC platform for Ospital ng Makati, supporting surveillance reporting and institutional auditing.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
