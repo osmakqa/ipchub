@@ -50,10 +50,10 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         patientName: '',
         nurseInCharge: '',
         // CAUTI fields
-        cauti_c1: '',
-        cauti_c2: '',
-        cauti_c3: [] as string[],
-        cauti_c4: [] as string[],
+        cauti_drainageIntact: '',
+        cauti_catheterSecured: '',
+        cauti_urineBagPosition: '',
+        cauti_meatalCare: '',
         // VAP fields
         vap_headElevated: '',
         vap_oralCare: '',
@@ -109,7 +109,7 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         setFormData({
             date: new Date().toISOString().split('T')[0],
             area: '', areaOther: '', patientName: '', nurseInCharge: '',
-            cauti_c1: '', cauti_c2: '', cauti_c3: [], cauti_c4: [],
+            cauti_drainageIntact: '', cauti_catheterSecured: '', cauti_urineBagPosition: '', cauti_meatalCare: '',
             vap_headElevated: '', vap_oralCare: '', vap_pepticProphylaxis: '', vap_dvtProphylaxis: '',
             clabsi_handHygiene: '', clabsi_scrubConnector: '', clabsi_dressingClean: ''
         });
@@ -140,17 +140,17 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
             let compliant = true;
 
             if (type === 'VAP') {
-                const isC = audit.vap_headElevated === 'Yes' && audit.vap_oralCare === 'Yes';
+                const isC = audit.vap_headElevated === 'Yes' && audit.vap_oralCare === 'Yes' && audit.vap_pepticProphylaxis === 'Yes' && audit.vap_dvtProphylaxis === 'Yes';
                 if (isC) resultsByArea[area].vap++;
                 resultsByArea[area].countVap++;
                 compliant = isC;
             } else if (type === 'CAUTI') {
-                const isC = audit.cauti_c1 === 'Yes' && audit.cauti_c2 === 'Yes';
+                const isC = audit.cauti_drainageIntact === 'Yes' && audit.cauti_catheterSecured === 'Yes' && audit.cauti_urineBagPosition === 'Below bladder level' && audit.cauti_meatalCare === 'Daily with soap & water';
                 if (isC) resultsByArea[area].cauti++;
                 resultsByArea[area].countCauti++;
                 compliant = isC;
             } else if (type === 'CLABSI') {
-                const isC = audit.clabsi_handHygiene === 'Yes' && audit.clabsi_scrubConnector === 'Yes';
+                const isC = audit.clabsi_handHygiene === 'Yes' && audit.clabsi_scrubConnector === 'Yes' && audit.clabsi_dressingClean === 'Yes';
                 if (isC) resultsByArea[area].clabsi++;
                 resultsByArea[area].countClabsi++;
                 compliant = isC;
@@ -215,20 +215,26 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                     {bundleType === 'CAUTI' && (
                         <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200 flex flex-col gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
                             <div className="flex items-center gap-2 mb-2"><Droplets className="text-blue-500"/><h3 className="text-sm font-black uppercase text-slate-900 tracking-widest">CAUTI Prevention Bundle</h3></div>
-                            <div className="grid grid-cols-1 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
-                                    <label className="text-xs font-bold text-slate-700">C1. Closed Drainage System Intact</label>
+                                    <label className="text-xs font-bold text-slate-700">Closed Drainage System Intact?</label>
                                     <div className="flex gap-2">
-                                        <button type="button" onClick={() => handleInputChange('cauti_c1', 'Yes')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_c1 === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>Yes</button>
-                                        <button type="button" onClick={() => handleInputChange('cauti_c1', 'No')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_c1 === 'No' ? 'bg-rose-500 border-rose-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>No</button>
+                                        <button type="button" onClick={() => handleInputChange('cauti_drainageIntact', 'Yes')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_drainageIntact === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>Yes</button>
+                                        <button type="button" onClick={() => handleInputChange('cauti_drainageIntact', 'No')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_drainageIntact === 'No' ? 'bg-rose-500 border-rose-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>No</button>
                                     </div>
                                 </div>
                                 <div className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
-                                    <label className="text-xs font-bold text-slate-700">C2. Catheter Secured</label>
+                                    <label className="text-xs font-bold text-slate-700">Catheter Secured (no traction)?</label>
                                     <div className="flex gap-2">
-                                        <button type="button" onClick={() => handleInputChange('cauti_c2', 'Yes')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_c2 === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>Yes</button>
-                                        <button type="button" onClick={() => handleInputChange('cauti_c2', 'No')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_c2 === 'No' ? 'bg-rose-500 border-rose-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>No</button>
+                                        <button type="button" onClick={() => handleInputChange('cauti_catheterSecured', 'Yes')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_catheterSecured === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>Yes</button>
+                                        <button type="button" onClick={() => handleInputChange('cauti_catheterSecured', 'No')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_catheterSecured === 'No' ? 'bg-rose-500 border-rose-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>No</button>
                                     </div>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <Select label="Urine Bag Position" options={['Below bladder level', 'Not touching floor', 'Improper positioning']} value={formData.cauti_urineBagPosition} onChange={e => handleInputChange('cauti_urineBagPosition', e.target.value)} required />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <Select label="Routine Meatal Care" options={['Daily with soap & water', 'No antiseptics used', 'Not documented / improper']} value={formData.cauti_meatalCare} onChange={e => handleInputChange('cauti_meatalCare', e.target.value)} required />
                                 </div>
                             </div>
                         </div>
@@ -239,8 +245,31 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <div className="flex items-center gap-2 mb-2"><Wind className="text-blue-500"/><h3 className="text-sm font-black uppercase text-slate-900 tracking-widest">VAP Prevention Bundle</h3></div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {[
-                                    { id: 'vap_headElevated', label: "Head elevated 30-45 deg?" },
-                                    { id: 'vap_oralCare', label: "Patient received oral care?" }
+                                    { id: 'vap_headElevated', label: "Is the patient's head elevated 30-45deg?" },
+                                    { id: 'vap_oralCare', label: "Did the patient receive oral care?" },
+                                    { id: 'vap_pepticProphylaxis', label: "Did the patient have peptic ulcer disease prophylaxis?" },
+                                    { id: 'vap_dvtProphylaxis', label: "Does patient have deep venous thrombosis prophylaxis?" }
+                                ].map(q => (
+                                    <div key={q.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
+                                        <label className="text-xs font-bold text-slate-700 leading-tight">{q.label}</label>
+                                        <div className="flex gap-2">
+                                            <button type="button" onClick={() => handleInputChange(q.id, 'Yes')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData[q.id] === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>Yes</button>
+                                            <button type="button" onClick={() => handleInputChange(q.id, 'No')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData[q.id] === 'No' ? 'bg-rose-500 border-rose-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>No</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {bundleType === 'CLABSI' && (
+                        <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200 flex flex-col gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                            <div className="flex items-center gap-2 mb-2"><Syringe className="text-blue-500"/><h3 className="text-sm font-black uppercase text-slate-900 tracking-widest">CLABSI Prevention Bundle</h3></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {[
+                                    { id: 'clabsi_handHygiene', label: "Performs hand hygiene prior to handling the line?" },
+                                    { id: 'clabsi_scrubConnector', label: "Scrubs connector vigorously with alcohol for 15 seconds?" },
+                                    { id: 'clabsi_dressingClean', label: "Dressing is clean and not soaked?" }
                                 ].map(q => (
                                     <div key={q.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
                                         <label className="text-xs font-bold text-slate-700 leading-tight">{q.label}</label>

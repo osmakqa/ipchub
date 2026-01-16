@@ -96,7 +96,19 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
 
     const handleSubmit = async () => {
         setLoading(true);
-        await submitHHAudit(form);
+
+        // Calculate summary fields for Hand Hygiene audit
+        const totalMomentsObserved = form.moments.length;
+        const actionsPerformed = form.moments.filter(m => m.action === 'Hand Rub' || m.action === 'Hand Wash').length;
+        const actionsMissed = form.moments.filter(m => m.action === 'Missed').length;
+
+        await submitHHAudit({ 
+            ...form, 
+            totalMomentsObserved, 
+            actionsPerformed, 
+            actionsMissed 
+        });
+
         alert("Hand Hygiene Audit Logged Successfully.");
         setForm({
             date: new Date().toISOString().split('T')[0],
@@ -125,21 +137,20 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         auditHistory.forEach(audit => {
             const role = audit.auditeeRole || 'Other';
             const area = audit.area || 'Unknown';
-            const moments = audit.moments || [];
+            // Use the summary fields if available, otherwise calculate from moments array
+            const totalObserved = audit.totalMomentsObserved !== undefined ? audit.totalMomentsObserved : (audit.moments || []).length;
+            const performedCount = audit.actionsPerformed !== undefined ? audit.actionsPerformed : (audit.moments || []).filter((m: any) => m.action !== 'Missed').length;
             
             if (!roleCompliance[role]) roleCompliance[role] = { total: 0, performed: 0 };
             if (!areaCompliance[area]) areaCompliance[area] = { total: 0, performed: 0 };
 
-            moments.forEach((m: any) => {
-                roleCompliance[role].total++;
-                areaCompliance[area].total++;
-                grandTotal++;
-                if (m.action !== 'Missed') {
-                    roleCompliance[role].performed++;
-                    areaCompliance[area].performed++;
-                    grandPerformed++;
-                }
-            });
+            roleCompliance[role].total += totalObserved;
+            areaCompliance[area].total += totalObserved;
+            grandTotal += totalObserved;
+
+            roleCompliance[role].performed += performedCount;
+            areaCompliance[area].performed += performedCount;
+            grandPerformed += performedCount;
         });
 
         const roleData = Object.entries(roleCompliance).map(([name, data]) => ({
