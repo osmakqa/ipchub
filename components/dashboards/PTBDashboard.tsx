@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
@@ -42,7 +43,8 @@ import {
   PlusCircle,
   AlertCircle,
   Edit3,
-  Download
+  Download,
+  Loader2
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend, 
@@ -522,6 +524,33 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                                 <Select label="Treatment History" name="treatmentHistory" options={['New', 'Relapse', 'Treatment After Failure', 'Treatment After Loss to Follow-up', 'Previous Treatment Unknown']} value={formModal.item.treatmentHistory} onChange={handleInputChange} disabled={!formModal.isEditable} />
                                 <Select label="Outcome" name="outcome" options={PTB_OUTCOMES} value={formModal.item.outcome} onChange={handleInputChange} disabled={!formModal.isEditable} />
                                 <Input label="Outcome Date" name="outcomeDate" type="date" value={formModal.item.outcomeDate} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                            </div>
+                            
+                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                                    <h4 className="text-[10px] font-black text-blue-600 uppercase mb-2">GeneXpert History</h4>
+                                    <div className="space-y-2">
+                                        {Array.isArray(formModal.item.xpertResults) && formModal.item.xpertResults.map((x: any, i: number) => (
+                                            <div key={i} className="text-xs bg-white p-2 rounded-lg border border-blue-50 flex justify-between">
+                                                <span className="font-bold">{x.date} ({x.specimen})</span>
+                                                <span className="font-black text-blue-700">{x.result}</span>
+                                            </div>
+                                        ))}
+                                        {(!formModal.item.xpertResults || formModal.item.xpertResults.length === 0) && <p className="text-[10px] italic text-slate-400">No records found</p>}
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-100">
+                                    <h4 className="text-[10px] font-black text-amber-700 uppercase mb-2">Smear (AFB) History</h4>
+                                    <div className="space-y-2">
+                                        {Array.isArray(formModal.item.smearResults) && formModal.item.smearResults.map((s: any, i: number) => (
+                                            <div key={i} className="text-xs bg-white p-2 rounded-lg border border-amber-50 flex justify-between">
+                                                <span className="font-bold">{s.date} ({s.specimen})</span>
+                                                <span className="font-black text-amber-700">{s.result}</span>
+                                            </div>
+                                        ))}
+                                        {(!formModal.item.smearResults || formModal.item.smearResults.length === 0) && <p className="text-[10px] italic text-slate-400">No records found</p>}
+                                    </div>
+                                </div>
                             </div>
                         </section>
                     </div>
