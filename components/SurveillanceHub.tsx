@@ -28,7 +28,8 @@ import {
   Trophy,
   Sparkles,
   Calendar,
-  Loader2
+  Loader2,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
@@ -40,6 +41,7 @@ import NotifiableDashboard from './dashboards/NotifiableDashboard';
 import NeedlestickDashboard from './dashboards/NeedlestickDashboard';
 import CultureDashboard from './dashboards/CultureDashboard';
 import Resources from './Resources';
+import ReporterAnalytics from './dashboards/ReporterAnalytics';
 
 // Import Audit dashboards
 import HandHygieneAudit from './audits/HandHygieneAudit';
@@ -296,6 +298,7 @@ const SurveillanceHub: React.FC = () => {
     { id: 'tb', label: 'TB Registry', icon: <Stethoscope size={20} />, color: 'text-amber-700', component: PTBDashboard },
     { id: 'isolation', label: 'Isolation Room', icon: <ShieldCheck size={20} />, color: 'text-indigo-600', component: IsolationDashboard },
     { id: 'needlestick', label: 'Sharps / Injury', icon: <ShieldAlert size={20} />, color: 'text-red-500', component: NeedlestickDashboard },
+    { id: 'analytics', label: 'Reports', icon: <FileSpreadsheet size={20} />, color: 'text-emerald-600', component: ReporterAnalytics },
   ];
 
   const auditModules: ModuleConfig[] = [

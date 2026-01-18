@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../ui/Layout';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import ThankYouModal from '../ui/ThankYouModal';
 import { AREAS, ISOLATION_AREAS, BARANGAYS, EMBO_BARANGAYS } from '../../constants';
 import { submitReport, calculateAge, extractPatientInfoFromImage } from '../../services/ipcService';
 import { ChevronLeft, Send, Loader2, Camera, FileText, Users, AlertCircle, MapPin } from 'lucide-react';
@@ -13,13 +13,12 @@ const IsolationForm: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [showThankYou, setShowThankYou] = useState(false);
   const [isOutsideMakati, setIsOutsideMakati] = useState(false);
 
   const [formData, setFormData] = useState<any>({
-    // Patient Information
     lastName: '', firstName: '', middleName: '', hospitalNumber: '', dob: '', age: '', sex: '',
     barangay: '', city: 'Makati',
-    // Admission Information
     area: '', transferDate: '', transferredFrom: '',
     diagnosis: '', dateOfAdmission: '', 
     reporterName: '', designation: ''
@@ -34,6 +33,15 @@ const IsolationForm: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev: any) => ({ ...prev, [name]: value }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+        lastName: '', firstName: '', middleName: '', hospitalNumber: '', dob: '', age: '', sex: '',
+        barangay: '', city: 'Makati', area: '', transferDate: '', transferredFrom: '',
+        diagnosis: '', dateOfAdmission: '', reporterName: '', designation: ''
+    });
+    setShowThankYou(false);
   };
 
   const handleOutsideMakatiChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,11 +80,10 @@ const IsolationForm: React.FC = () => {
     setLoading(true);
     try { 
       await submitReport("Isolation Admission", formData); 
-      alert("Isolation Record Successfully Submitted."); 
-      navigate('/'); 
+      setShowThankYou(true);
     }
     catch (error) { 
-      alert(error instanceof Error ? error.message : "Failed to submit."); 
+      alert("Failed to submit."); 
     } 
     finally { setLoading(false); }
   };
@@ -95,7 +102,7 @@ const IsolationForm: React.FC = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {/* 1. Patient Information */}
+        {/* Patient Info */}
         <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col gap-4">
             <div className="flex items-center justify-between border-b pb-2">
                 <h3 className="font-black text-sm text-gray-800 flex items-center gap-2 uppercase tracking-wide"><Users size={18} className="text-primary"/> Patient Information</h3>
@@ -104,7 +111,6 @@ const IsolationForm: React.FC = () => {
                 </button>
                 <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
               <Input label="Hosp #" name="hospitalNumber" value={formData.hospitalNumber} onChange={handleChange} required />
               <Input label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} required />
@@ -113,7 +119,6 @@ const IsolationForm: React.FC = () => {
               <Input label="DOB" name="dob" type="date" value={formData.dob} onChange={handleChange} required />
               <Input label="Age" name="age" value={formData.age} readOnly className="bg-gray-50" />
               <Select label="Sex" name="sex" options={['Male', 'Female']} value={formData.sex} onChange={handleChange} required />
-              
               <div className="md:col-span-1 flex flex-col justify-end">
                 <label className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase cursor-pointer mb-2">
                     <input type="checkbox" checked={isOutsideMakati} onChange={handleOutsideMakatiChange} className="rounded text-primary h-4 w-4"/> Outside Makati?
@@ -130,7 +135,7 @@ const IsolationForm: React.FC = () => {
             </div>
         </div>
 
-        {/* 2. Admission Status */}
+        {/* Admission Details */}
         <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col gap-4">
            <h3 className="font-black text-sm text-gray-800 flex items-center gap-2 uppercase tracking-wide border-b pb-2"><MapPin size={18} className="text-primary"/> Isolation Context</h3>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -155,6 +160,13 @@ const IsolationForm: React.FC = () => {
             </div>
         </div>
       </form>
+
+      <ThankYouModal 
+        show={showThankYou} 
+        reporterName={formData.reporterName} 
+        moduleName="Isolation Registry" 
+        onClose={resetForm} 
+      />
     </Layout>
   );
 };

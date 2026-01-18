@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -23,7 +24,10 @@ import {
     BarChart3,
     Filter,
     RotateCcw,
-    Loader2
+    Loader2,
+    Trophy,
+    Medal,
+    Star
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 
@@ -54,6 +58,7 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         date: new Date().toISOString().split('T')[0],
         area: '',
         areaOther: '',
+        auditeeName: '',
         auditeeRole: '',
         auditeeRoleOther: '',
         moments: [{ moment: '', action: '', usedGloves: false }] as MomentEntry[]
@@ -97,7 +102,6 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     const handleSubmit = async () => {
         setLoading(true);
 
-        // Calculate summary fields for Hand Hygiene audit
         const totalMomentsObserved = form.moments.length;
         const actionsPerformed = form.moments.filter(m => m.action === 'Hand Rub' || m.action === 'Hand Wash').length;
         const actionsMissed = form.moments.filter(m => m.action === 'Missed').length;
@@ -112,7 +116,7 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         alert("Hand Hygiene Audit Logged Successfully.");
         setForm({
             date: new Date().toISOString().split('T')[0],
-            area: '', areaOther: '', auditeeRole: '', auditeeRoleOther: '',
+            area: '', areaOther: '', auditeeName: '', auditeeRole: '', auditeeRoleOther: '',
             moments: [{ moment: '', action: '', usedGloves: false }]
         });
         setLoading(false);
@@ -131,18 +135,28 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         
         const roleCompliance: Record<string, { total: number, performed: number }> = {};
         const areaCompliance: Record<string, { total: number, performed: number }> = {};
+        const staffPerformance: Record<string, { total: number, performed: number, role: string }> = {};
         let grandTotal = 0;
         let grandPerformed = 0;
 
-        auditHistory.forEach(audit => {
+        const filteredByYear = auditHistory.filter(a => {
+            const date = a.date ? new Date(a.date) : new Date();
+            return date.getFullYear().toString() === selectedYear;
+        });
+
+        if (filteredByYear.length === 0) return null;
+
+        filteredByYear.forEach(audit => {
             const role = audit.auditeeRole || 'Other';
             const area = audit.area || 'Unknown';
-            // Use the summary fields if available, otherwise calculate from moments array
+            const name = audit.auditeeName || 'Unknown Staff';
+            
             const totalObserved = audit.totalMomentsObserved !== undefined ? audit.totalMomentsObserved : (audit.moments || []).length;
             const performedCount = audit.actionsPerformed !== undefined ? audit.actionsPerformed : (audit.moments || []).filter((m: any) => m.action !== 'Missed').length;
             
             if (!roleCompliance[role]) roleCompliance[role] = { total: 0, performed: 0 };
             if (!areaCompliance[area]) areaCompliance[area] = { total: 0, performed: 0 };
+            if (!staffPerformance[name]) staffPerformance[name] = { total: 0, performed: 0, role };
 
             roleCompliance[role].total += totalObserved;
             areaCompliance[area].total += totalObserved;
@@ -151,6 +165,9 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
             roleCompliance[role].performed += performedCount;
             areaCompliance[area].performed += performedCount;
             grandPerformed += performedCount;
+
+            staffPerformance[name].total += totalObserved;
+            staffPerformance[name].performed += performedCount;
         });
 
         const roleData = Object.entries(roleCompliance).map(([name, data]) => ({
@@ -161,10 +178,21 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         const areaData = Object.entries(areaCompliance).map(([name, data]) => ({
             name,
             score: Math.round((data.performed / data.total) * 100)
-        })).sort((a, b) => b.score - a.score);
+        })).sort((a, b) => b.score - a.score).slice(0, 5);
 
-        return { roleData, areaData, overall: Math.round((grandPerformed / grandTotal) * 100) };
-    }, [auditHistory]);
+        const champions = Object.entries(staffPerformance)
+            .map(([name, data]) => ({
+                name,
+                role: data.role,
+                count: data.performed,
+                compliance: Math.round((data.performed / data.total) * 100)
+            }))
+            .filter(staff => staff.count > 0)
+            .sort((a, b) => b.compliance - a.compliance || b.count - a.count)
+            .slice(0, 5);
+
+        return { roleData, areaData, champions, overall: Math.round((grandPerformed / grandTotal) * 100) };
+    }, [auditHistory, selectedYear]);
 
     return (
         <div className="flex flex-col gap-6 max-w-5xl mx-auto pb-20">
@@ -190,12 +218,13 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <Input label="Audit Date" type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
                         <div className="flex flex-col gap-2">
                             <Select label="Observation Area" options={AREAS} value={form.area} onChange={e => setForm({...form, area: e.target.value})} />
                             {form.area === 'Other (specify)' && <Input label="Specify Area" value={form.areaOther} onChange={e => setForm({...form, areaOther: e.target.value})} />}
                         </div>
+                        <Input label="Auditee Name" value={form.auditeeName} onChange={e => setForm({...form, auditeeName: e.target.value})} placeholder="Full Name" />
                         <div className="flex flex-col gap-2">
                             <Select label="Auditee Role" options={ROLES} value={form.auditeeRole} onChange={e => setForm({...form, auditeeRole: e.target.value})} />
                             {form.auditeeRole === 'Others (specify)' && <Input label="Specify Role" value={form.auditeeRoleOther} onChange={e => setForm({...form, auditeeRoleOther: e.target.value})} />}
@@ -259,7 +288,7 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                     <div className="border-t border-slate-100 pt-6 flex justify-end">
                         <button 
                             onClick={handleSubmit}
-                            disabled={loading || !form.area || !form.auditeeRole}
+                            disabled={loading || !form.area || !form.auditeeRole || !form.auditeeName}
                             className="bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-sm tracking-widest shadow-xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
                         >
                             {loading ? <Clock size={20} className="animate-spin" /> : <Save size={20} />} Publish Audit Results
@@ -269,7 +298,7 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
             ) : (
                 <div className="flex flex-col gap-10 animate-in fade-in duration-500">
                     {loading ? <Loader2 className="animate-spin mx-auto text-slate-300" size={48} /> : !stats ? (
-                        <div className="p-20 text-center bg-white rounded-[3rem] border border-dashed border-slate-200 text-slate-400 font-bold">Awaiting first audit entry</div>
+                        <div className="p-20 text-center bg-white rounded-[3rem] border border-dashed border-slate-200 text-slate-400 font-bold">Awaiting first audit entry for {selectedYear}</div>
                     ) : (
                         <>
                             <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-200 overflow-x-auto print:hidden">
@@ -283,6 +312,7 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                             <option value="2023">2023</option>
                                             <option value="2024">2024</option>
                                             <option value="2025">2025</option>
+                                            <option value="2026">2026</option>
                                         </select>
                                     </div>
                                     <button onClick={() => { setSelectedYear(new Date().getFullYear().toString()); loadHistory(); }} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><RotateCcw size={14} /></button>
@@ -316,25 +346,62 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                 </div>
                             </div>
 
-                            <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-slate-100 rounded-2xl text-slate-500"><BarChart3 size={24}/></div>
-                                    <h3 className="text-xl font-black uppercase text-slate-900">Area Analysis</h3>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* Top 5 Champions */}
+                                <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-black uppercase text-slate-900 tracking-widest flex items-center gap-3">
+                                            <Trophy size={20} className="text-amber-500" /> HH Champions (Top 5)
+                                        </h3>
+                                        <Star size={18} className="text-amber-400 fill-current" />
+                                    </div>
+                                    <div className="flex flex-col gap-3">
+                                        {stats.champions.map((staff, idx) => (
+                                            <div key={staff.name} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-white hover:border-emerald-500 transition-all group">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`size-10 rounded-xl flex items-center justify-center font-black ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-100 text-slate-400' : idx === 2 ? 'bg-orange-50 text-orange-400' : 'bg-white text-slate-300'}`}>
+                                                        {idx + 1}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] font-black uppercase text-slate-400">{staff.role}</span>
+                                                        <span className="text-sm font-black text-slate-800 uppercase">{staff.name}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-lg font-black text-emerald-600">{staff.compliance}%</span>
+                                                    <span className="text-[8px] font-bold text-slate-400 uppercase">{staff.count} Compliance Actions</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="h-80">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={stats.areaData}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} domain={[0, 100]} />
-                                            <RechartsTooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
-                                            <Bar dataKey="score" radius={[10, 10, 0, 0]} barSize={50}>
-                                                {stats.areaData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.score > 85 ? '#10b981' : entry.score > 75 ? '#3b82f6' : '#f59e0b'} />
-                                                ))}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
+
+                                {/* Top 5 Performing Wards */}
+                                <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-black uppercase text-slate-900 tracking-widest flex items-center gap-3">
+                                            <BarChart3 size={20} className="text-emerald-600" /> Top Performing Areas
+                                        </h3>
+                                        <ShieldCheck size={18} className="text-emerald-500" />
+                                    </div>
+                                    <div className="h-64">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={stats.areaData} layout="vertical">
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+                                                <XAxis type="number" domain={[0, 100]} hide />
+                                                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} width={100} />
+                                                <RechartsTooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+                                                <Bar dataKey="score" radius={[0, 10, 10, 0]} barSize={30}>
+                                                    {stats.areaData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.score > 85 ? '#10b981' : entry.score > 75 ? '#3b82f6' : '#f59e0b'} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="mt-auto pt-4 border-t border-slate-50">
+                                        <p className="text-[10px] font-bold text-slate-400 italic">Ranking based on year-to-date compliance percentage.</p>
+                                    </div>
                                 </div>
                             </div>
                         </>

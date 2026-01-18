@@ -313,6 +313,7 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                         <option value="2023">2023</option>
                         <option value="2024">2024</option>
                         <option value="2025">2025</option>
+                        <option value="2026">2026</option>
                     </select>
                     <select className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:ring-1 focus:ring-primary outline-none font-bold bg-slate-50/50 text-slate-600" value={selectedQuarter} onChange={handleQuarterChange}>
                         <option value="">Full Year</option>

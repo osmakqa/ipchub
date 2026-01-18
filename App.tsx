@@ -17,6 +17,7 @@ import NeedlestickForm from './components/forms/NeedlestickForm';
 import PTBForm from './components/forms/PTBForm';
 import CultureReportForm from './components/forms/CultureReportForm';
 import Resources from './components/Resources';
+import ReporterAnalytics from './components/dashboards/ReporterAnalytics';
 
 const App: React.FC = () => {
   return (
@@ -36,6 +37,7 @@ const App: React.FC = () => {
           <Route path="/notifiable-dashboard" element={<NotifiableDashboard />} />
           <Route path="/needlestick-dashboard" element={<NeedlestickDashboard />} />
           <Route path="/pending" element={<PendingTasksDashboard />} />
+          <Route path="/reporter-analytics" element={<ReporterAnalytics />} />
           
           {/* Form Routes */}
           <Route path="/report-disease" element={<NotifiableDiseaseForm />} />
