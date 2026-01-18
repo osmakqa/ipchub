@@ -34,7 +34,8 @@ import {
   Users,
   FileText,
   Edit3,
-  Trash2
+  Trash2,
+  Download
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend, 
@@ -103,6 +104,56 @@ const NeedlestickDashboard: React.FC<Props> = ({ isNested }) => {
       return matchesJob && matchesLocation && matchesDate;
     });
   }, [data, filterJob, filterLocation, startDate, endDate]);
+
+  const handleExportCSV = () => {
+    if (filteredData.length === 0) return;
+    
+    const exportItems = filteredData.map(item => ({
+      ID: item.id || '',
+      Date_Reported: item.dateReported || '',
+      Time_Reported: item.timeReported || '',
+      Staff_Name: item.hcwName || '',
+      Employee_Number: item.hospitalNumber || '',
+      Job_Title: item.jobTitle || '',
+      Department: item.department || '',
+      Work_Location: item.workLocation || '',
+      Date_of_Injury: item.dateOfInjury || '',
+      Time_of_Injury: item.timeOfInjury || '',
+      Exposure_Type: item.exposureType || '',
+      Device_Involved: item.deviceInvolved || '',
+      Device_Brand: item.deviceBrand || '',
+      Device_Contaminated: item.deviceContaminated || '',
+      Activity_During_Injury: item.activity || '',
+      Narrative: item.narrative || '',
+      Body_Location_Code: item.locationOnBodyCode || '',
+      Body_Location_Desc: item.locationOnBody || '',
+      Source_Identified: item.sourceIdentified || '',
+      Source_MRN: item.sourceMrn || '',
+      Source_HIV: item.sourceStatusHIV ? 'Yes' : 'No',
+      Source_HBV: item.sourceStatusHBV ? 'Yes' : 'No',
+      Source_HCV: item.sourceStatusHCV ? 'Yes' : 'No',
+      Eval_Date: item.evalDate || '',
+      PEP_Received: item.pepReceived || '',
+      Vaccination_History: item.vaccinationHistory || '',
+      Supervisor_Notified: item.supervisorNotified || '',
+      Supervisor_Name: item.supervisorName || '',
+      IPC_Notified: item.ipcNotified || '',
+      IPC_Notify_Date: item.ipcNotifyDate || ''
+    }));
+
+    const headers = Object.keys(exportItems[0]).join(',');
+    const rows = exportItems.map(item => 
+      Object.values(item).map(val => `"${String(val).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    const csvContent = `${headers}\n${rows}`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Sharps_Exposure_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.click();
+  };
 
   const analytics = useMemo(() => {
     if (filteredData.length === 0) return null;
@@ -174,9 +225,18 @@ const NeedlestickDashboard: React.FC<Props> = ({ isNested }) => {
                     <button onClick={() => setViewMode('analysis')} className={`px-3 py-1 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'analysis' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500'}`}><BarChart2 size={14} /> Analysis</button>
                 </div>
             </div>
-            <button onClick={() => navigate('/report-needlestick')} className="bg-red-500 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-red-600 flex items-center gap-2 transition-all active:scale-95 text-xs">
-              <PlusCircle size={18} /> Log Injury
-            </button>
+            <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleExportCSV}
+                  disabled={filteredData.length === 0}
+                  className="bg-white text-slate-600 px-4 py-2 rounded-lg font-black uppercase tracking-widest border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 text-xs"
+                >
+                  <Download size={18} /> Export Full CSV
+                </button>
+                <button onClick={() => navigate('/report-needlestick')} className="bg-red-500 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-red-600 flex items-center gap-2 transition-all active:scale-95 text-xs">
+                  <PlusCircle size={18} /> Log Injury
+                </button>
+            </div>
         </div>
 
         <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-200 overflow-x-auto print:hidden">

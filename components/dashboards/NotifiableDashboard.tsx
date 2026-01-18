@@ -110,14 +110,89 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewM
     if (filteredData.length === 0) return;
     
     const exportItems = filteredData.map(item => ({
-      Report_Date: item.dateReported,
-      Patient_Name: formatName(item.lastName, item.firstName),
-      Hospital_Number: item.hospitalNumber,
-      Disease: item.disease,
-      Ward: item.area,
-      Status: item.outcome || 'Admitted',
-      Admission_Date: item.dateOfAdmission,
-      Reporter: item.reporterName
+      ID: item.id || '',
+      Date_Reported: item.dateReported || '',
+      Hospital_Number: item.hospitalNumber || '',
+      Last_Name: item.lastName || '',
+      First_Name: item.firstName || '',
+      Middle_Name: item.middleName || '',
+      DOB: item.dob || '',
+      Age: item.age || '',
+      Sex: item.sex || '',
+      Barangay: item.barangay || '',
+      City: item.city || '',
+      Disease: item.disease || '',
+      Disease_Other: item.diseaseOther || '',
+      Admission_Date: item.dateOfAdmission || '',
+      Ward: item.area || '',
+      Ward_Other: item.areaOther || '',
+      Outcome: item.outcome || 'Admitted',
+      Outcome_Date: item.outcomeDate || '',
+      
+      // Dengue Specific
+      Dengue_Vaccine: item.dengueVaccine || '',
+      Dengue_Dose1: item.dengueDose1 || '',
+      Dengue_DoseLast: item.dengueDoseLast || '',
+      Dengue_Class: item.dengueClinicalClass || '',
+      
+      // ILI Specific
+      ILI_Travel: item.iliTravel || '',
+      ILI_Travel_Loc: item.iliTravelLoc || '',
+      ILI_Vaccine: item.iliVaccine || '',
+      ILI_Vaccine_Date: item.iliVaccineDate || '',
+      
+      // Leptospirosis Specific
+      Lepto_Exposure: item.leptoExposure || '',
+      Lepto_Place: item.leptoPlace || '',
+      
+      // Polio Specific
+      Polio_Vaccine: item.afpPolioVaccine || '',
+      
+      // HFMD Specific
+      HFMD_Symptoms: Array.isArray(item.hfmdSymptoms) ? item.hfmdSymptoms.join('; ') : '',
+      HFMD_Comm_Cases: item.hfmdCommunityCases || '',
+      HFMD_Exp_Type: item.hfmdExposureType || '',
+      
+      // Measles Specific
+      Measles_Symptoms: Array.isArray(item.measlesSymptoms) ? item.measlesSymptoms.join('; ') : '',
+      Measles_Vaccine: item.measlesVaccine || '',
+      Measles_Vaccine_Date: item.measlesVaccineDate || '',
+      
+      // Rotavirus Specific
+      Rota_Vaccine: item.rotaVaccine || '',
+      Rota_Vaccine_Date: item.rotaVaccineDate || '',
+      
+      // Rabies Specific
+      Rabies_RIG: item.rabiesRIG || '',
+      Rabies_Vaccine_Prior: item.rabiesVaccinePrior || '',
+      Rabies_Vaccine_Date: item.rabiesVaccineDate || '',
+      
+      // Chikungunya Specific
+      Chik_Symptoms: Array.isArray(item.chikSymptoms) ? item.chikSymptoms.join('; ') : '',
+      Chik_Travel: item.chikTravel || '',
+      Chik_Travel_Loc: item.chikTravelLoc || '',
+      
+      // Pertussis Specific
+      Pert_Vaccine: item.pertVaccine || '',
+      Pert_Vaccine_Date: item.pertVaccineDate || '',
+      Pert_Symptoms: Array.isArray(item.pertSymptoms) ? item.pertSymptoms.join('; ') : '',
+      
+      // AMES Specific
+      AMES_Symptoms: Array.isArray(item.amesSymptoms) ? item.amesSymptoms.join('; ') : '',
+      AMES_Travel: item.amesTravel || '',
+      AMES_Travel_Loc: item.amesTravelLoc || '',
+      
+      // SARI Specific
+      SARI_Meds: Array.isArray(item.sariMeds) ? item.sariMeds.join('; ') : '',
+      SARI_Hhold_ILI: item.sariHouseholdILI || '',
+      SARI_School_ILI: item.sariSchoolILI || '',
+      SARI_Flu_Vaccine: item.sariFluVaccine || '',
+      SARI_Animal_Exp: Array.isArray(item.sariAnimalExposure) ? item.sariAnimalExposure.join('; ') : '',
+      SARI_Travel: item.sariTravel || '',
+      SARI_Travel_Loc: item.sariTravelLoc || '',
+      
+      Reporter: item.reporterName || '',
+      Designation: item.designation || ''
     }));
 
     const headers = Object.keys(exportItems[0]).join(',');
@@ -130,7 +205,7 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewM
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `Notifiable_Diseases_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `Notifiable_Diseases_Full_Export_${new Date().toISOString().split('T')[0]}.csv`);
     link.click();
   };
 
@@ -198,35 +273,6 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewM
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormModal(prev => ({ ...prev, item: { ...prev.item, [name]: value } }));
-  };
-
-  const handleModalCheckboxToggle = (field: string, value: string) => {
-    setFormModal(prev => {
-      const currentList = prev.item?.[field] || [];
-      const updatedList = currentList.includes(value)
-        ? currentList.filter((item: string) => item !== value)
-        : [...currentList, value];
-      return {
-        ...prev,
-        item: { ...prev.item, [field]: updatedList }
-      };
-    });
-  };
-
-  const handleModalAmesVaccine = (vaccine: string, field: 'doses' | 'lastDate', value: string) => {
-    setFormModal(prev => ({
-      ...prev,
-      item: {
-        ...prev.item,
-        amesVaccines: {
-          ...(prev.item?.amesVaccines || {}),
-          [vaccine]: {
-            ...(prev.item?.amesVaccines?.[vaccine] || { doses: '', lastDate: '' }),
-            [field]: value
-          }
-        }
-      }
-    }));
   };
 
   const saveChanges = async () => {
@@ -300,7 +346,7 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewM
                   disabled={filteredData.length === 0}
                   className="bg-white text-slate-600 px-4 py-2 rounded-lg font-black uppercase tracking-widest border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 text-xs"
                 >
-                  <Download size={18} /> Export CSV
+                  <Download size={18} /> Export Full CSV
                 </button>
                 {isAuthenticated && (
                   <button 
@@ -350,7 +396,7 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewM
                 <button onClick={() => { setFilterDisease(''); setFilterOutcome('Active'); setStartDate(''); setEndDate(''); setSelectedQuarter(''); setSelectedYear(new Date().getFullYear().toString()); }} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><RotateCcw size={14} /></button>
             </div>
         </div>
-        {/* ... Rest of component content ... */}
+
         <div className="flex flex-col lg:flex-row gap-6">
             <div className="flex-1 order-2 lg:order-1 min-w-0">
                 {viewMode === 'analysis' ? (
@@ -400,9 +446,115 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewM
                     </div>
                 )}
             </div>
-            {/* Sidebar Cards and Modal logic remains same ... */}
+            {/* Sidebar Cards */}
+            {viewMode === 'list' && (
+              <div className="w-full lg:w-48 flex flex-col gap-3 print:hidden order-1 lg:order-2">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="px-3 py-2 border-b border-slate-50 bg-slate-50/30">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Registry Cards</span>
+                      </div>
+                      <div className="flex flex-col divide-y divide-slate-50">
+                        <button onClick={() => setFilterOutcome('Active')} className="p-4 flex flex-col gap-0.5 text-left hover:bg-slate-50 transition-colors group">
+                            <span className="text-[7px] font-black uppercase text-slate-400 group-hover:text-red-600">Total Active</span>
+                            <span className="text-2xl font-black text-slate-900 leading-none">{summaryStats.totalActive}</span>
+                        </button>
+                        {summaryStats.diseaseCensus.slice(0, 5).map(([name, count]) => (
+                            <button key={name} onClick={() => setFilterDisease(name)} className="p-4 flex flex-col gap-0.5 text-left hover:bg-slate-50 transition-colors group">
+                                <span className="text-[7px] font-black uppercase text-slate-400 group-hover:text-red-600 truncate">{name}</span>
+                                <span className="text-xl font-black text-red-600 leading-none">{count}</span>
+                            </button>
+                        ))}
+                      </div>
+                  </div>
+              </div>
+            )}
         </div>
-        {/* ... Modal same ... */}
+
+        {formModal.show && formModal.item && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 print:hidden">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95">
+                    <div className="bg-red-700 text-white p-6 sticky top-0 z-10 flex justify-between items-center shadow-lg">
+                        <h2 className="font-black text-xl leading-tight">
+                          {formModal.isEditable ? 'Edit Notifiable Record' : 'Disease Case Details'}
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          {isAuthenticated && !formModal.isEditable && (
+                            <>
+                              <button onClick={() => setFormModal(prev => ({ ...prev, isEditable: true }))} className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold">
+                                <Edit3 size={16}/> Edit
+                              </button>
+                              <button onClick={() => promptDeleteConfirmation(formModal.item)} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
+                                <Trash2 size={16}/> Delete
+                              </button>
+                            </>
+                          )}
+                          <button onClick={() => setFormModal({ show: false, item: null, isEditable: false })} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={24}/></button>
+                        </div>
+                    </div>
+                    
+                    <div className="p-6 md:p-8 flex flex-col gap-8">
+                        {/* Demographics */}
+                        <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-5">
+                            <h3 className="font-black text-sm text-slate-800 flex items-center gap-2 uppercase tracking-wide border-b pb-3">
+                              <Users size={18} className="text-red-600"/> Patient Identification
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <Input label="Hospital Number" name="hospitalNumber" value={formModal.item.hospitalNumber} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="Last Name" name="lastName" value={formModal.isEditable ? formModal.item.lastName : getPrivacyValue(formModal.item.lastName)} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="First Name" name="firstName" value={formModal.isEditable ? formModal.item.firstName : getPrivacyValue(formModal.item.firstName)} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="Age" name="age" value={formModal.item.age} readOnly className="bg-slate-50 font-bold" />
+                                <Select label="Sex" name="sex" options={['Male', 'Female']} value={formModal.item.sex} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="Barangay" name="barangay" value={formModal.item.barangay} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="City" name="city" value={formModal.item.city} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                            </div>
+                        </section>
+
+                        {/* Clinical */}
+                        <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-5">
+                            <h3 className="font-black text-sm text-slate-800 flex items-center gap-2 uppercase tracking-wide border-b pb-3">
+                              <Activity size={18} className="text-red-600"/> Case Information
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <Select label="Disease" name="disease" options={NOTIFIABLE_DISEASES} value={formModal.item.disease} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                              <Select label="Reporting Area" name="area" options={AREAS} value={formModal.item.area} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                              <Input label="Admission Date" name="dateOfAdmission" type="date" value={formModal.item.dateOfAdmission} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                              <Input label="Reported On" name="dateReported" type="date" value={formModal.item.dateReported} readOnly className="bg-slate-50" />
+                            </div>
+                        </section>
+
+                        {/* Outcome */}
+                        <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-5">
+                            <h3 className="font-black text-sm text-slate-800 flex items-center gap-2 uppercase tracking-wide border-b pb-3">
+                              <FileText size={18} className="text-red-600"/> Disposition & Reporter
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <Select label="Outcome" name="outcome" options={PATIENT_OUTCOMES} value={formModal.item.outcome} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                              <Input label="Reporter" name="reporterName" value={formModal.item.reporterName} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                              <Input label="Designation" name="designation" value={formModal.item.designation} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                            </div>
+                        </section>
+                    </div>
+
+                    <div className="p-6 bg-slate-50 border-t flex justify-end items-center gap-3 sticky bottom-0">
+                        <button onClick={() => setFormModal({ show: false, item: null, isEditable: false })} className="px-6 py-3 bg-white text-slate-600 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors">Close</button>
+                        {formModal.isEditable && (
+                          <button onClick={saveChanges} className="bg-red-700 text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest shadow-lg hover:bg-red-800 flex items-center gap-2 transition-all">
+                            <Save size={20}/> Save Changes
+                          </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        <PasswordConfirmModal
+          show={showPasswordConfirm}
+          onClose={() => setShowPasswordConfirm(false)}
+          onConfirm={handlePasswordConfirmed}
+          loading={passwordConfirmLoading}
+          title="Confirm Notifiable Deletion"
+          description={`Enter your password to permanently delete the notifiable report for ${itemToDelete?.lastName || ''}, ${itemToDelete?.firstName || ''}.`}
+        />
     </div>
   );
 

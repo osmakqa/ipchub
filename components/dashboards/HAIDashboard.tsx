@@ -126,16 +126,40 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
   const handleExportCSV = () => {
     if (filteredData.length === 0) return;
     
-    // Prepare headers and data
     const exportItems = filteredData.map(item => ({
-      Date_Reported: item.dateReported,
-      Patient_Name: formatName(item.lastName, item.firstName),
-      Hospital_Number: item.hospitalNumber,
-      Area: item.area,
-      HAI_Type: item.haiType,
+      ID: item.id || '',
+      Date_Reported: item.dateReported || '',
+      Hospital_Number: item.hospitalNumber || '',
+      Last_Name: item.lastName || '',
+      First_Name: item.firstName || '',
+      Middle_Name: item.middleName || '',
+      DOB: item.dob || '',
+      Age: item.age || '',
+      Sex: item.sex || '',
+      Barangay: item.barangay || '',
+      City: item.city || '',
+      Admission_Date: item.dateOfAdmission || '',
+      Primary_Area: item.area || '',
+      HAI_Type: item.haiType || '',
       Outcome: item.outcome || 'Admitted',
-      Admission_Date: item.dateOfAdmission,
-      Reporter: item.reporterName
+      Outcome_Date: item.outcomeDate || '',
+      MV_Initiation_Area: item.mvInitiationArea || '',
+      MV_Initiation_Date: item.mvInitiationDate || '',
+      IFC_Initiation_Area: item.ifcInitiationArea || '',
+      IFC_Initiation_Date: item.ifcInitiationDate || '',
+      CRBSI_Initiation_Area: item.crbsiInitiationArea || '',
+      CRBSI_Insertion_Date: item.crbsiInsertionDate || '',
+      Catheter_Type: item.catheterType || '',
+      Num_Lumens: item.numLumens || '',
+      Clinical_Signs: Array.isArray(item.clinicalSigns) ? item.clinicalSigns.join('; ') : (item.clinicalSigns || ''),
+      SSI_Procedure: item.ssiProcedureType || '',
+      SSI_Procedure_Date: item.ssiProcedureDate || '',
+      SSI_Event_Date: item.ssiEventDate || '',
+      SSI_Tissue_Level: item.ssiTissueLevel || '',
+      SSI_Organ_Space: item.ssiOrganSpace || '',
+      Movement_History: Array.isArray(item.movementHistory) ? item.movementHistory.map((m: any) => `${m.area} (${m.date})`).join('; ') : '',
+      Reporter: item.reporterName || '',
+      Designation: item.designation || ''
     }));
 
     const headers = Object.keys(exportItems[0]).join(',');
@@ -148,7 +172,7 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `HAI_Registry_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `HAI_Full_Registry_${new Date().toISOString().split('T')[0]}.csv`);
     link.click();
   };
 
@@ -283,7 +307,7 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                   disabled={filteredData.length === 0}
                   className="bg-white text-slate-600 px-4 py-2 rounded-lg font-black uppercase tracking-widest border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 text-xs"
                 >
-                  <Download size={18} /> Export CSV
+                  <Download size={18} /> Export Full CSV
                 </button>
                 <button onClick={() => navigate('/report-hai')} className="bg-primary text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow-lg hover:bg-osmak-green-dark flex items-center gap-2 transition-all active:scale-95 text-xs">
                   <PlusCircle size={18} /> Report Case

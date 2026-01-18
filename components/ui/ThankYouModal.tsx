@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Heart, ArrowRight, Home } from 'lucide-react';
+import { CheckCircle2, Heart, ArrowRight, Home, Users } from 'lucide-react';
 
 interface ThankYouModalProps {
   show: boolean;
@@ -35,10 +35,18 @@ const ThankYouModal: React.FC<ThankYouModalProps> = ({ show, reporterName, modul
             <h3 className="text-2xl font-black text-slate-900">{reporterName || 'Health Worker'}</h3>
           </div>
           
-          <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
-            Your report for the <span className="text-primary font-bold">{moduleName}</span> has been logged. 
-            Your contribution is vital to our hospital's safety and surveillance mission.
-          </p>
+          <div className="flex flex-col gap-4 max-w-xs">
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Your report for the <span className="text-primary font-bold">{moduleName}</span> has been logged. 
+              Your contribution is vital to our hospital's safety and surveillance mission.
+            </p>
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
+              <Users size={20} className="text-primary flex-shrink-0" />
+              <p className="text-[11px] text-slate-500 font-bold text-left leading-tight">
+                You may view your previous validated entries in the <span className="text-primary">Reporters</span> section of the hub.
+              </p>
+            </div>
+          </div>
 
           <div className="flex flex-col sm:flex-row gap-3 w-full mt-4">
             <button 
@@ -57,7 +65,7 @@ const ThankYouModal: React.FC<ThankYouModalProps> = ({ show, reporterName, modul
           
           <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-300 mt-2">
             <Heart size={10} className="text-red-400 fill-current" />
-            Ospital ng Makati IPC Unit
+            Ospital ng Makati IPC
           </div>
         </div>
       </div>

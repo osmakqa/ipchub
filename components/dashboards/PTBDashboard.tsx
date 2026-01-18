@@ -104,16 +104,39 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
     if (filteredData.length === 0) return;
     
     const exportItems = filteredData.map(item => ({
-      Report_Date: item.dateReported,
-      Patient_Name: formatName(item.lastName, item.firstName),
-      Hospital_Number: item.hospitalNumber,
-      Area: item.area,
-      Classification: item.classification || 'N/A',
-      Anatomical_Site: item.anatomicalSite,
-      Drug_Susceptibility: item.drugSusceptibility,
+      ID: item.id || '',
+      Report_Date: item.dateReported || '',
+      Hospital_Number: item.hospitalNumber || '',
+      Last_Name: item.lastName || '',
+      First_Name: item.firstName || '',
+      Middle_Name: item.middleName || '',
+      DOB: item.dob || '',
+      Age: item.age || '',
+      Sex: item.sex || '',
+      Civil_Status: item.civilStatus || '',
+      Barangay: item.barangay || '',
+      City: item.city || '',
+      Admission_Date: item.dateOfAdmission || '',
+      Area: item.area || '',
+      Area_Other: item.areaOther || '',
+      Classification: item.classification || '',
+      Anatomical_Site: item.anatomicalSite || '',
+      Drug_Susceptibility: item.drugSusceptibility || '',
+      Treatment_History: item.treatmentHistory || '',
+      CXR_Date: item.cxrDate || '',
+      Xpert_Results: Array.isArray(item.xpertResults) ? item.xpertResults.map((x: any) => `${x.date}:${x.specimen}:${x.result}`).join('; ') : '',
+      Smear_Results: Array.isArray(item.smearResults) ? item.smearResults.map((s: any) => `${s.date}:${s.specimen}:${s.result}`).join('; ') : '',
+      Emergency_Procedure: item.emergencySurgicalProcedure || '',
+      Treatment_Started: item.treatmentStarted || '',
+      Treatment_Start_Date: item.treatmentStartDate || '',
+      Comorbidities: Array.isArray(item.comorbidities) ? item.comorbidities.join('; ') : '',
+      HIV_Result: item.hivTestResult || '',
+      Started_ART: item.startedOnArt || '',
+      Movement_History: Array.isArray(item.movementHistory) ? item.movementHistory.map((m: any) => `${m.area} (${m.date})`).join('; ') : '',
       Outcome: item.outcome || 'Admitted',
-      Admission_Date: item.dateOfAdmission,
-      Reporter: item.reporterName
+      Outcome_Date: item.outcomeDate || '',
+      Reporter: item.reporterName || '',
+      Designation: item.designation || ''
     }));
 
     const headers = Object.keys(exportItems[0]).join(',');
@@ -126,7 +149,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `TB_Registry_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `TB_Registry_Full_Export_${new Date().toISOString().split('T')[0]}.csv`);
     link.click();
   };
 
@@ -303,7 +326,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                   disabled={filteredData.length === 0}
                   className="bg-white text-slate-600 px-4 py-2 rounded-lg font-black uppercase tracking-widest border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 text-xs"
                 >
-                  <Download size={18} /> Export CSV
+                  <Download size={18} /> Export Full CSV
                 </button>
                 <button onClick={() => navigate('/report-ptb')} className="bg-amber-700 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-amber-800 flex items-center gap-2 transition-all active:scale-95 text-xs">
                   <PlusCircle size={18} /> Register Case
@@ -343,7 +366,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                 <button onClick={() => { setFilterArea(''); setFilterOutcome('Active'); setFilterNoDx(false); setStartDate(''); setEndDate(''); setSelectedQuarter(''); setSelectedYear(new Date().getFullYear().toString()); }} className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"><RotateCcw size={14} /></button>
             </div>
         </div>
-        {/* ... Rest of component content ... */}
+
         <div className="flex flex-col lg:flex-row gap-6">
             <div className="flex-1 order-2 lg:order-1 min-w-0">
                 {viewMode === 'analysis' ? (
@@ -404,8 +427,125 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                     </div>
                 )}
             </div>
-            {/* Sidebar and Modal logic remains same ... */}
+            
+            {viewMode === 'list' && (
+                <div className="w-full lg:w-48 flex flex-col gap-3 print:hidden order-1 lg:order-2">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="px-3 py-2 border-b border-slate-50 bg-slate-50/30">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">TB Stats</span>
+                        </div>
+                        <div className="flex flex-col divide-y divide-slate-50">
+                          <button onClick={() => { setFilterOutcome('Active'); setFilterArea(''); setFilterNoDx(false); }} className="p-4 flex flex-col gap-0.5 text-left hover:bg-slate-50 transition-colors group">
+                              <span className="text-[7px] font-black uppercase text-slate-400 group-hover:text-amber-600">Active Registry</span>
+                              <span className="text-2xl font-black text-slate-900 leading-none">{summaryStats.totalActive}</span>
+                          </button>
+                          <button onClick={() => { setFilterOutcome('Active'); setFilterNoDx(true); }} className="p-4 flex flex-col gap-0.5 text-left hover:bg-slate-50 transition-colors group">
+                              <span className="text-[7px] font-black uppercase text-slate-400 group-hover:text-red-600 leading-tight">Missing Lab Results</span>
+                              <span className="text-2xl font-black text-red-600 leading-none">{summaryStats.missingDiagnostics}</span>
+                          </button>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-2">
+                        <div className="flex items-center gap-1.5 border-b border-slate-50 pb-1.5">
+                            <MapPin size={10} className="text-slate-400" />
+                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 leading-none">Isolation Census</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <button onClick={() => setFilterArea('Medicine Isolation Room')} className="flex items-center justify-between bg-slate-50/50 px-2 py-1.5 rounded-md hover:bg-white transition-all text-left group border border-transparent hover:border-amber-200">
+                                <span className="text-[7px] font-bold text-slate-500 uppercase group-hover:text-amber-600">Medicine ISO</span>
+                                <span className="text-[9px] font-black text-amber-600">{summaryStats.medIso}</span>
+                            </button>
+                            <button onClick={() => setFilterArea('Surgery Isolation Room')} className="flex items-center justify-between bg-slate-50/50 px-2 py-1.5 rounded-md hover:bg-white transition-all text-left group border border-transparent hover:border-amber-200">
+                                <span className="text-[7px] font-bold text-slate-500 uppercase group-hover:text-amber-600">Surgery ISO</span>
+                                <span className="text-[9px] font-black text-amber-600">{summaryStats.surgIso}</span>
+                            </button>
+                            <button onClick={() => setFilterArea('Pediatric Isolation Room')} className="flex items-center justify-between bg-slate-50/50 px-2 py-1.5 rounded-md hover:bg-white transition-all text-left group border border-transparent hover:border-amber-200">
+                                <span className="text-[7px] font-bold text-slate-500 uppercase group-hover:text-amber-600">Pedia ISO</span>
+                                <span className="text-[9px] font-black text-amber-600">{summaryStats.pediaIso}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
+
+        {formModal.show && formModal.item && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 print:hidden">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95">
+                    <div className="bg-amber-700 text-white p-6 sticky top-0 z-10 flex justify-between items-center shadow-lg">
+                        <h2 className="font-black text-xl leading-tight">
+                          {formModal.isEditable ? 'Edit TB Record' : 'TB Registry Details'}
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          {isAuthenticated && !formModal.isEditable && (
+                            <>
+                              <button onClick={() => setFormModal(prev => ({ ...prev, isEditable: true }))} className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold">
+                                <Edit3 size={16}/> Edit
+                              </button>
+                              <button onClick={() => promptDeleteConfirmation(formModal.item)} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
+                                <Trash2 size={16}/> Delete
+                              </button>
+                            </>
+                          )}
+                          <button onClick={() => setFormModal({ show: false, item: null, isEditable: false })} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={24}/></button>
+                        </div>
+                    </div>
+
+                    <div className="p-6 md:p-8 flex flex-col gap-8">
+                        {/* Section 1: Demographics */}
+                        <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-5">
+                            <h3 className="font-black text-sm text-slate-800 flex items-center gap-2 uppercase tracking-wide border-b pb-3">
+                              <Users size={18} className="text-amber-700"/> Patient Identification
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <Input label="Hospital Number" name="hospitalNumber" value={formModal.item.hospitalNumber} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="Last Name" name="lastName" value={formModal.isEditable ? formModal.item.lastName : getPrivacyValue(formModal.item.lastName)} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="First Name" name="firstName" value={formModal.isEditable ? formModal.item.firstName : getPrivacyValue(formModal.item.firstName)} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="Age" name="age" value={formModal.item.age} readOnly className="bg-slate-50 font-bold" />
+                                <Select label="Sex" name="sex" options={['Male', 'Female']} value={formModal.item.sex} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <div className="md:col-span-2">
+                                  <Input label="Barangay" name="barangay" value={formModal.item.barangay} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                </div>
+                                <Input label="City" name="city" value={formModal.item.city} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                            </div>
+                        </section>
+
+                        {/* Section 2: TB Specifics */}
+                        <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-5">
+                            <h3 className="font-black text-sm text-slate-800 flex items-center gap-2 uppercase tracking-wide border-b pb-3">
+                              <Stethoscope size={18} className="text-amber-700"/> Diagnostic Classification
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <Select label="Classification" name="classification" options={['Bacteriological Confirmed', 'Clinically Diagnosed', 'Presumptive TB']} value={formModal.item.classification} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Select label="Drug Susceptibility" name="drugSusceptibility" options={['Sensitive', 'RR', 'MDR', 'XDR', 'Unknown']} value={formModal.item.drugSusceptibility} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Select label="Treatment History" name="treatmentHistory" options={['New', 'Relapse', 'Treatment After Failure', 'Treatment After Loss to Follow-up', 'Previous Treatment Unknown']} value={formModal.item.treatmentHistory} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Select label="Outcome" name="outcome" options={PTB_OUTCOMES} value={formModal.item.outcome} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="Outcome Date" name="outcomeDate" type="date" value={formModal.item.outcomeDate} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                            </div>
+                        </section>
+                    </div>
+
+                    <div className="p-6 bg-slate-50 border-t flex justify-end items-center gap-3 sticky bottom-0">
+                        <button onClick={() => setFormModal({ show: false, item: null, isEditable: false })} className="px-6 py-3 bg-white text-slate-600 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors">Close</button>
+                        {formModal.isEditable && (
+                          <button onClick={saveChanges} className="bg-amber-700 text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest shadow-lg hover:bg-amber-800 flex items-center gap-2 transition-all">
+                            <Save size={20}/> Save Changes
+                          </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        <PasswordConfirmModal
+          show={showPasswordConfirm}
+          onClose={() => setShowPasswordConfirm(false)}
+          onConfirm={handlePasswordConfirmed}
+          loading={passwordConfirmLoading}
+          title="Confirm TB Record Deletion"
+          description={`Enter your password to permanently delete the TB record for ${itemToDelete?.lastName || ''}, ${itemToDelete?.firstName || ''}.`}
+        />
     </div>
   );
 
