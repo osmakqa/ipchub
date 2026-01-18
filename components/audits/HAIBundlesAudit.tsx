@@ -23,7 +23,8 @@ import {
     BarChart3,
     Filter,
     RotateCcw,
-    Loader2
+    Loader2,
+    Sparkles
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, CartesianGrid } from 'recharts';
 
@@ -40,7 +41,6 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     const [bundleType, setBundleType] = useState<string>('');
     const [showActionPlanModal, setShowActionPlanModal] = useState(false);
     
-    // Filters
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
 
     const [formData, setFormData] = useState<any>({
@@ -49,21 +49,39 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         areaOther: '',
         patientName: '',
         nurseInCharge: '',
-        // CAUTI fields
         cauti_drainageIntact: '',
         cauti_catheterSecured: '',
         cauti_urineBagPosition: '',
         cauti_meatalCare: '',
-        // VAP fields
         vap_headElevated: '',
         vap_oralCare: '',
         vap_pepticProphylaxis: '',
         vap_dvtProphylaxis: '',
-        // CLABSI fields
         clabsi_handHygiene: '',
         clabsi_scrubConnector: '',
         clabsi_dressingClean: ''
     });
+
+    const handleMagicFill = () => {
+        if (!bundleType) {
+            alert("Select a Bundle Type first to use Magic Fill.");
+            return;
+        }
+        const sampleBase = {
+            date: new Date().toISOString().split('T')[0],
+            area: 'ICU',
+            patientName: 'Patient Sample-001',
+            nurseInCharge: 'N. Reyes'
+        };
+
+        if (bundleType === 'VAP') {
+            setFormData({ ...formData, ...sampleBase, vap_headElevated: 'Yes', vap_oralCare: 'Yes', vap_pepticProphylaxis: 'Yes', vap_dvtProphylaxis: 'Yes' });
+        } else if (bundleType === 'CAUTI') {
+            setFormData({ ...formData, ...sampleBase, cauti_drainageIntact: 'Yes', cauti_catheterSecured: 'Yes', cauti_urineBagPosition: 'Below bladder level', cauti_meatalCare: 'Daily with soap & water' });
+        } else if (bundleType === 'CLABSI') {
+            setFormData({ ...formData, ...sampleBase, clabsi_handHygiene: 'Yes', clabsi_scrubConnector: 'Yes', clabsi_dressingClean: 'Yes' });
+        }
+    };
 
     const [apForm, setApForm] = useState({ 
         action: '', 
@@ -87,14 +105,6 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
 
     const handleInputChange = (name: string, value: any) => {
         setFormData((prev: any) => ({ ...prev, [name]: value }));
-    };
-
-    const handleCheckboxToggle = (field: string, val: string) => {
-        setFormData((prev: any) => {
-            const list = prev[field] || [];
-            const newList = list.includes(val) ? list.filter((i: string) => i !== val) : [...list, val];
-            return { ...prev, [field]: newList };
-        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -189,6 +199,13 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <div><h2 className="text-xl font-black text-slate-900 uppercase">HAI Bundle Compliance</h2><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Clinical Care Pathway Audit</p></div>
                         </div>
                         <div className="flex items-center gap-3">
+                            <button 
+                                type="button"
+                                onClick={handleMagicFill}
+                                className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all"
+                            >
+                                <Sparkles size={14}/> Magic Fill
+                            </button>
                             <button 
                                 type="button"
                                 onClick={() => setShowActionPlanModal(true)}

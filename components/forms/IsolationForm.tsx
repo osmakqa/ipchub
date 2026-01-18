@@ -19,7 +19,7 @@ const IsolationForm: React.FC = () => {
   const [formData, setFormData] = useState<any>({
     lastName: '', firstName: '', middleName: '', hospitalNumber: '', dob: '', age: '', sex: '',
     barangay: '', city: 'Makati',
-    area: '', transferDate: '', transferredFrom: '',
+    area: '', areaOther: '', transferDate: '', transferredFrom: '',
     diagnosis: '', dateOfAdmission: '', 
     reporterName: '', designation: ''
   });
@@ -38,9 +38,10 @@ const IsolationForm: React.FC = () => {
   const resetForm = () => {
     setFormData({
         lastName: '', firstName: '', middleName: '', hospitalNumber: '', dob: '', age: '', sex: '',
-        barangay: '', city: 'Makati', area: '', transferDate: '', transferredFrom: '',
+        barangay: '', city: 'Makati', area: '', areaOther: '', transferDate: '', transferredFrom: '',
         diagnosis: '', dateOfAdmission: '', reporterName: '', designation: ''
     });
+    setIsOutsideMakati(false);
     setShowThankYou(false);
   };
 
@@ -78,12 +79,21 @@ const IsolationForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); 
     setLoading(true);
+
+    const submissionData = { ...formData };
+    if (submissionData.area === 'Other (specify)') {
+      submissionData.area = submissionData.areaOther || 'Other Isolation Unit';
+    }
+    // Remove UI-only fields
+    delete submissionData.areaOther;
+
     try { 
-      await submitReport("Isolation Admission", formData); 
+      await submitReport("Isolation Admission", submissionData); 
       setShowThankYou(true);
     }
-    catch (error) { 
-      alert("Failed to submit."); 
+    catch (err) { 
+      const msg = err instanceof Error ? err.message : "Submission Failed.";
+      alert(msg); 
     } 
     finally { setLoading(false); }
   };
@@ -140,6 +150,7 @@ const IsolationForm: React.FC = () => {
            <h3 className="font-black text-sm text-gray-800 flex items-center gap-2 uppercase tracking-wide border-b pb-2"><MapPin size={18} className="text-primary"/> Isolation Context</h3>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <Select label="Isolation Ward" name="area" options={ISOLATION_AREAS} value={formData.area} onChange={handleChange} required />
+              {formData.area === 'Other (specify)' && <Input label="Specify Isolation Unit" name="areaOther" value={formData.areaOther} onChange={handleChange} required />}
               <Input label="Isolation Entry Date" name="transferDate" type="date" value={formData.transferDate} onChange={handleChange} required />
               <Select label="Transferred From" name="transferredFrom" options={AREAS} value={formData.transferredFrom} onChange={handleChange} required />
               <Input label="Hospital Admission Date" name="dateOfAdmission" type="date" value={formData.dateOfAdmission} onChange={handleChange} required />
@@ -151,7 +162,7 @@ const IsolationForm: React.FC = () => {
             <h3 className="font-black text-sm text-gray-800 flex items-center gap-2 border-b pb-2 uppercase tracking-wide"><FileText size={18} className="text-primary"/> Reporter Data</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <Input label="Reporter Name" name="reporterName" value={formData.reporterName} onChange={handleChange} required />
-              <Select label="Designation" name="designation" options={['Doctor', 'Nurse', 'Other']} value={formData.designation} onChange={handleChange} required />
+              <Select label="Designation" name="designation" options={['Doctor', 'Nurse', 'IPC Staff', 'Other']} value={formData.designation} onChange={handleChange} required />
               <div className="flex items-end">
                 <button type="submit" disabled={loading} className="w-full h-10 bg-indigo-600 text-white rounded-lg font-black uppercase hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-lg">
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} Register Admission

@@ -191,26 +191,38 @@ const NotifiableDiseaseForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const reportsToSubmit = [...patientList];
+    const patientsToReport = [...patientList];
     if (currentPatient.lastName || currentPatient.firstName || currentPatient.hospitalNumber) {
         if (validatePatientForm(currentPatient)) {
-            reportsToSubmit.push({ ...currentPatient, id: 'temp-form' });
+            patientsToReport.push({ ...currentPatient, id: 'temp-form' });
         } else {
             alert("Please complete the current patient fields or clear them.");
             return;
         }
     }
-    if (reportsToSubmit.length === 0) { alert("Please add at least one patient."); return; }
+    if (patientsToReport.length === 0) { alert("Please add at least one patient."); return; }
 
     setLoading(true);
+    
+    // Prepare common payload
+    const submissionCommon = { ...commonData };
+    if (submissionCommon.disease === 'Other (specify)') submissionCommon.disease = submissionCommon.diseaseOther || 'Other Disease';
+    if (submissionCommon.area === 'Other (specify)') submissionCommon.area = submissionCommon.areaOther || 'Other Area';
+    
+    // Cleanup non-DB fields
+    delete submissionCommon.diseaseOther;
+    delete submissionCommon.areaOther;
+    delete submissionCommon.designationOther;
+
     try {
-      for (const patient of reportsToSubmit) {
+      for (const patient of patientsToReport) {
           const { id: _, ...patientPayload } = patient;
-          await submitReport("Notifiable Disease", { ...commonData, ...patientPayload });
+          await submitReport("Notifiable Disease", { ...submissionCommon, ...patientPayload });
       }
       setShowThankYou(true);
-    } catch (error) { 
-      alert("Failed to submit."); 
+    } catch (err) { 
+      const msg = err instanceof Error ? err.message : "Failed to submit.";
+      alert(`Submission Failed: ${msg}`); 
     } finally { setLoading(false); }
   };
 
@@ -292,7 +304,6 @@ const NotifiableDiseaseForm: React.FC = () => {
             </div>
 
             {/* --- DISEASE SPECIFIC QUESTIONNAIRES --- */}
-            {/* ... keeping existing disease-specific sections ... */}
             {commonData.disease === "Dengue" && (
                 <div className="p-6 bg-red-50/50 rounded-[1.5rem] border border-red-100 flex flex-col gap-5 animate-in slide-in-from-top-2">
                     <h4 className="text-xs font-black text-red-800 uppercase flex items-center gap-2"><Syringe size={14}/> Dengue Specific Questionnaire</h4>
@@ -310,7 +321,6 @@ const NotifiableDiseaseForm: React.FC = () => {
                     </div>
                 </div>
             )}
-            {/* ... other disease specific sections same as original ... */}
 
             <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-[1.5rem] border border-slate-200">
                 <Select label="Patient Disposition" name="outcome" options={PATIENT_OUTCOMES} value={commonData.outcome} onChange={handleCommonChange} />

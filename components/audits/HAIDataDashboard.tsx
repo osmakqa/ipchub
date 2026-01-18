@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import Input from '../ui/Input';
 import { getCensusLogs, submitCensusLog, getHAIReports, calculateInfectionRates } from '../../services/ipcService';
@@ -22,7 +21,8 @@ import {
     ChevronLeft,
     ChevronRight,
     AlertCircle,
-    Calendar as CalendarIcon
+    Calendar as CalendarIcon,
+    Sparkles
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, 
@@ -35,11 +35,10 @@ const HAIDataDashboard: React.FC = () => {
     const [logs, setLogs] = useState<any[]>([]);
     const [infections, setInfections] = useState<any[]>([]);
     
-    // Calendar State
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
-    const [formData, setFormData] = useState({
+    const initialFormData = {
         date: new Date().toISOString().split('T')[0],
         overall: '', icu: '', nicu: '', picu: '', medicine: '', cohort: '',
         overallVent: '', overallIfc: '', overallCentral: '',
@@ -48,7 +47,22 @@ const HAIDataDashboard: React.FC = () => {
         picuVent: '', picuIfc: '', picuCentral: '',
         medVent: '', medIfc: '', medCentral: '',
         cohortVent: '', cohortIfc: '', cohortCentral: ''
-    });
+    };
+
+    const [formData, setFormData] = useState(initialFormData);
+
+    const handleMagicFill = () => {
+        setFormData({
+            date: selectedDate,
+            overall: '245', icu: '18', nicu: '12', picu: '10', medicine: '120', cohort: '85',
+            overallVent: '42', overallIfc: '156', overallCentral: '88',
+            icuVent: '12', icuIfc: '18', icuCentral: '18',
+            nicuVent: '5', nicuIfc: '4', nicuCentral: '12',
+            picuVent: '8', picuIfc: '10', picuCentral: '10',
+            medVent: '10', medIfc: '80', medCentral: '30',
+            cohortVent: '7', cohortIfc: '44', cohortCentral: '18'
+        });
+    };
 
     useEffect(() => { loadData(); }, []);
 
@@ -70,13 +84,11 @@ const HAIDataDashboard: React.FC = () => {
         await submitCensusLog(formData);
         alert("Daily Census Logged Successfully.");
         loadData();
-        // Keep the same date or clear? Usually better to keep current view
         setLoading(false);
     };
 
     const stats = useMemo(() => calculateInfectionRates(logs, infections), [logs, infections]);
 
-    // Calendar logic
     const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
@@ -87,7 +99,6 @@ const HAIDataDashboard: React.FC = () => {
         const startDay = firstDayOfMonth(year, month);
         const days = [];
         
-        // Padding for previous month
         for (let i = 0; i < startDay; i++) {
             days.push(null);
         }
@@ -142,7 +153,6 @@ const HAIDataDashboard: React.FC = () => {
 
             {view === 'log' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    {/* Left Column: Calendar & Selection */}
                     <div className="lg:col-span-4 flex flex-col gap-6 sticky top-24">
                         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
                             <div className="flex items-center justify-between mb-6">
@@ -184,7 +194,6 @@ const HAIDataDashboard: React.FC = () => {
                                             `}
                                         >
                                             {day.day}
-                                            {/* Status Indicators */}
                                             <div className="absolute bottom-1 flex gap-0.5">
                                                 {day.hasLog && <div className={`size-1 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-500'}`}></div>}
                                                 {needsLog && <div className={`size-1 rounded-full ${isSelected ? 'bg-white' : 'bg-red-500 animate-pulse'}`}></div>}
@@ -222,7 +231,6 @@ const HAIDataDashboard: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Right Column: Entry Form */}
                     <div className="lg:col-span-8 flex flex-col gap-8">
                         <form onSubmit={handleLogSubmit} className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-8 animate-in fade-in duration-500">
                             <div className="flex items-center justify-between border-b border-slate-100 pb-5">
@@ -233,16 +241,24 @@ const HAIDataDashboard: React.FC = () => {
                                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Surveillance for {selectedDate}</p>
                                     </div>
                                 </div>
-                                {logs.find(l => l.date === selectedDate) && (
-                                    <div className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-emerald-100">
-                                        <CheckCircle2 size={16}/>
-                                        <span className="text-[10px] font-black uppercase">Logged</span>
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-3">
+                                    <button 
+                                        type="button" 
+                                        onClick={handleMagicFill}
+                                        className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all"
+                                    >
+                                        <Sparkles size={14}/> Magic Fill
+                                    </button>
+                                    {logs.find(l => l.date === selectedDate) && (
+                                        <div className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-emerald-100">
+                                            <CheckCircle2 size={16}/>
+                                            <span className="text-[10px] font-black uppercase">Logged</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="flex flex-col gap-8">
-                                {/* Section 1: Global Totals */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100">
                                     <div className="md:col-span-3 flex items-center gap-2 mb-1">
                                         <Activity size={14} className="text-indigo-600"/>
@@ -253,7 +269,6 @@ const HAIDataDashboard: React.FC = () => {
                                     <Input label="Overall Central Line" type="number" value={formData.overallCentral} onChange={e => setFormData({...formData, overallCentral: e.target.value})} required />
                                 </div>
 
-                                {/* Section 2: Admissions & Census */}
                                 <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200">
                                     <div className="flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
                                         <Users size={16} className="text-slate-900"/>
@@ -269,7 +284,6 @@ const HAIDataDashboard: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Section 3: Ward-Specific Device Days */}
                                 <div className="bg-white rounded-3xl border border-slate-200 p-6 flex flex-col gap-4">
                                     <div className="flex items-center gap-2 mb-2 border-b border-slate-100 pb-2">
                                         <LayoutDashboard size={16} className="text-blue-600"/>

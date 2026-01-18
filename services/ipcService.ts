@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
 
@@ -69,6 +68,7 @@ const sanitizeData = (data: any) => {
         sanitized[key] = trimmed;
       }
     }
+    // Preserving non-empty arrays for JSONB/Text[] columns
     if (Array.isArray(value) && value.length === 0) {
       sanitized[key] = [];
     }
@@ -195,7 +195,6 @@ export const deleteRecord = async (table: string, id: string) => {
   console.log(`Starting deletion: Table=${table}, ID=${id}`);
 
   // We use .select() to force Supabase to return the row it deleted.
-  // If the array is empty, it means either the ID didn't exist or RLS blocked the deletion.
   const { data, error } = await supabase
     .from(table)
     .delete()
@@ -275,7 +274,8 @@ export const validateReport = async (type: string, id: string, coordinator: stri
       throw new Error(`Validation Failed: ${msg}`);
   }
 
-  if (type === 'notifiable' || type === 'Notifiable Disease') {
+  // Backup validated reports to sheets
+  if (['notifiable', 'Notifiable Disease', 'tb', 'TB Report'].includes(type)) {
     await syncToGoogleSheets({ ...entry, id });
   }
 
@@ -295,11 +295,12 @@ export const submitReport = async (formType: string, data: any): Promise<boolean
   
   const { error } = await supabase.from(table).insert([entry]);
   if (error) {
-      const errorDetail = `[Code: ${error.code}] ${error.code.includes('duplicate key') ? 'A record with this identifier already exists.' : error.message}`;
+      const errorDetail = `[Code: ${error.code}] ${error.code.includes('duplicate key') ? 'A record with this identifier already exists (Potential Duplicate Hospital Number).' : error.message}`;
       throw new Error(errorDetail);
   }
 
-  if (formType === 'Notifiable Disease') {
+  // Initial entry backup to sheets
+  if (['Notifiable Disease', 'TB Report'].includes(formType)) {
     await syncToGoogleSheets(entry);
   }
 
@@ -464,17 +465,7 @@ export const extractCombinedCultureReport = async (base64Image: string): Promise
 };
 
 export const queryIPCAssistant = async (query: string, history: any[]): Promise<string> => {
-  // const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
-    // const context = history.map(h => `${h.role === 'user' ? 'Staff' : 'Assistant'}: ${h.text}`).join('\n');
-    // const response = await ai.models.generateContent({
-    //   model: 'gemini-3-flash-preview',
-    //   contents: `${context}\nStaff: ${query}`,
-    //   config: {
-    //     systemInstruction: "You are the 'OsMak IPC Assistant'. Help staff with Infection Prevention and Control inquiries. Reference WHO and CDC standards. Be concise and clinical. If asked about hospital specific forms, refer to the Hub Manual."
-    //   }
-    // });
-    // return response.text || "I am unable to answer that right now.";
     return "AI Assistant: This feature is currently under construction. Please check back later!";
   } catch (error) {
     return "AI Assistant offline. Please check connection.";

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -27,7 +26,8 @@ import {
     Loader2,
     Trophy,
     Medal,
-    Star
+    Star,
+    Sparkles
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 
@@ -51,10 +51,9 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     const [auditHistory, setAuditHistory] = useState<any[]>([]);
     const [showActionPlanModal, setShowActionPlanModal] = useState(false);
     
-    // Filters
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
 
-    const [form, setForm] = useState({
+    const initialForm = {
         date: new Date().toISOString().split('T')[0],
         area: '',
         areaOther: '',
@@ -62,7 +61,27 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         auditeeRole: '',
         auditeeRoleOther: '',
         moments: [{ moment: '', action: '', usedGloves: false }] as MomentEntry[]
-    });
+    };
+
+    const [form, setForm] = useState(initialForm);
+
+    const handleMagicFill = () => {
+        setForm({
+            date: new Date().toISOString().split('T')[0],
+            area: 'ICU',
+            areaOther: '',
+            auditeeName: 'Dr. Emily Watson',
+            auditeeRole: 'Doctor',
+            auditeeRoleOther: '',
+            moments: [
+                { moment: MOMENTS[0], action: 'Hand Rub', usedGloves: false },
+                { moment: MOMENTS[1], action: 'Hand Wash', usedGloves: false },
+                { moment: MOMENTS[3], action: 'Hand Rub', usedGloves: false },
+                { moment: MOMENTS[4], action: 'Missed', usedGloves: true },
+                { moment: MOMENTS[0], action: 'Hand Rub', usedGloves: false }
+            ]
+        });
+    };
 
     const [apForm, setApForm] = useState({ 
         action: '', 
@@ -114,11 +133,7 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         });
 
         alert("Hand Hygiene Audit Logged Successfully.");
-        setForm({
-            date: new Date().toISOString().split('T')[0],
-            area: '', areaOther: '', auditeeName: '', auditeeRole: '', auditeeRoleOther: '',
-            moments: [{ moment: '', action: '', usedGloves: false }]
-        });
+        setForm(initialForm);
         setLoading(false);
         if (view === 'analysis') loadHistory();
     };
@@ -209,6 +224,12 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <div><h2 className="text-xl font-black text-slate-900 uppercase">Direct Observation Audit</h2><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">WHO 5 Moments Recording</p></div>
                         </div>
                         <div className="flex items-center gap-3">
+                            <button 
+                                onClick={handleMagicFill}
+                                className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all"
+                            >
+                                <Sparkles size={14}/> Magic Fill
+                            </button>
                             <button 
                                 onClick={() => setShowActionPlanModal(true)}
                                 className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100 transition-all"
@@ -347,7 +368,6 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                {/* Top 5 Champions */}
                                 <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-sm font-black uppercase text-slate-900 tracking-widest flex items-center gap-3">
@@ -376,7 +396,6 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                     </div>
                                 </div>
 
-                                {/* Top 5 Performing Wards */}
                                 <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-sm font-black uppercase text-slate-900 tracking-widest flex items-center gap-3">

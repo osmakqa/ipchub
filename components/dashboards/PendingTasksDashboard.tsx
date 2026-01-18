@@ -17,7 +17,6 @@ import {
     INSERTION_SITES,
     NOTIFIABLE_DISEASES,
     PTB_OUTCOMES,
-    CIVIL_STATUS,
     BARANGAYS,
     DEVICES_NEEDLE,
     DEVICES_SURGICAL
@@ -269,7 +268,6 @@ const PendingTasksDashboard: React.FC = () => {
                                         {activeTab === 'tb' && (
                                             <div className="grid grid-cols-2 gap-2">
                                                 <Input label="DOB" name="dob" type="date" value={reviewModal.item.dob} onChange={handleModalInputChange} />
-                                                <Select label="Civil Status" name="civilStatus" options={CIVIL_STATUS} value={reviewModal.item.civilStatus} onChange={handleModalInputChange} />
                                             </div>
                                         )}
                                         {activeTab === 'needlestick' && (
@@ -285,7 +283,7 @@ const PendingTasksDashboard: React.FC = () => {
                                 <section className="p-5 bg-white rounded-xl border border-gray-200 flex flex-col gap-4">
                                     <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 border-b pb-2"><AlertCircle size={14}/> Clinical Context</h3>
                                     <div className="flex flex-col gap-3">
-                                        <Select label="Area / Ward" name="area" options={AREAS} value={reviewModal.item.area} onChange={handleModalInputChange} />
+                                        <Select label={activeTab === 'tb' ? 'Initial Admission Area' : 'Area / Ward'} name="area" options={AREAS} value={reviewModal.item.area} onChange={handleModalInputChange} />
                                         <Input label="Admission/Injury Date" name={activeTab === 'needlestick' ? 'dateOfInjury' : 'dateOfAdmission'} type="date" value={reviewModal.item[activeTab === 'needlestick' ? 'dateOfInjury' : 'dateOfAdmission']} onChange={handleModalInputChange} />
                                         
                                         {activeTab === 'notifiable' && (

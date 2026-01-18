@@ -45,9 +45,10 @@ const HAIForm: React.FC = () => {
   const [formData, setFormData] = useState<any>({
     lastName: '', firstName: '', middleName: '', hospitalNumber: '', dob: '', age: '', sex: '',
     barangay: '', city: 'Makati',
-    area: '', dateOfAdmission: '',
+    area: '', areaOther: '',
+    dateOfAdmission: '',
     movementHistory: [] as { area: string, date: string }[],
-    haiType: '', mvInitiationArea: '', mvInitiationDate: '', ifcInitiationArea: '', ifcInitiationDate: '',
+    haiType: '', haiTypeOther: '', mvInitiationArea: '', mvInitiationDate: '', ifcInitiationArea: '', ifcInitiationDate: '',
     crbsiInitiationArea: '', crbsiInsertionDate: '', catheterType: '', numLumens: '', clinicalSigns: [] as string[],
     ssiProcedureType: '', ssiProcedureDate: '', ssiEventDate: '', ssiTissueLevel: '', ssiOrganSpace: '',
     pneumoniaSymptomOnset: '',
@@ -82,9 +83,11 @@ const HAIForm: React.FC = () => {
       barangay: 'Poblacion',
       city: 'Makati',
       area: 'ICU',
+      areaOther: '',
       dateOfAdmission: admDate.toISOString().split('T')[0],
       movementHistory: [{ area: 'Emergency Room Complex', date: admDate.toISOString().split('T')[0] }],
       haiType: 'Ventilator Associated Pneumonia',
+      haiTypeOther: '',
       mvInitiationArea: 'ICU',
       mvInitiationDate: admDate.toISOString().split('T')[0],
       clinicalSigns: ['Fever (>38C)', 'Chills'],
@@ -98,8 +101,8 @@ const HAIForm: React.FC = () => {
   const resetForm = () => {
     setFormData({
         lastName: '', firstName: '', middleName: '', hospitalNumber: '', dob: '', age: '', sex: '',
-        barangay: '', city: 'Makati', area: '', dateOfAdmission: '', movementHistory: [],
-        haiType: '', mvInitiationArea: '', mvInitiationDate: '', ifcInitiationArea: '', ifcInitiationDate: '',
+        barangay: '', city: 'Makati', area: '', areaOther: '', dateOfAdmission: '', movementHistory: [],
+        haiType: '', haiTypeOther: '', mvInitiationArea: '', mvInitiationDate: '', ifcInitiationArea: '', ifcInitiationDate: '',
         crbsiInitiationArea: '', crbsiInsertionDate: '', catheterType: '', numLumens: '', clinicalSigns: [],
         ssiProcedureType: '', ssiProcedureDate: '', ssiEventDate: '', ssiTissueLevel: '', ssiOrganSpace: '',
         pneumoniaSymptomOnset: '', outcome: 'Admitted', outcomeDate: '', reporterName: '', designation: ''
@@ -171,11 +174,27 @@ const HAIForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const submissionData = { ...formData };
+    
+    // Merge "Other" values
+    if (submissionData.area === 'Other (specify)') {
+      submissionData.area = submissionData.areaOther || 'Other Ward';
+    }
+    if (submissionData.haiType === 'Other (specify)') {
+      submissionData.haiType = submissionData.haiTypeOther || 'Other Infection Type';
+    }
+
+    // Clean up temporary UI fields
+    delete submissionData.areaOther;
+    delete submissionData.haiTypeOther;
+
     try {
-      await submitReport("HAI", formData);
+      await submitReport("HAI", submissionData);
       setShowThankYou(true);
     } catch (error) {
-      alert("Failed to submit.");
+      const msg = error instanceof Error ? error.message : "Failed to submit.";
+      alert(msg);
     } finally {
       setLoading(false);
     }
@@ -197,7 +216,6 @@ const HAIForm: React.FC = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-5xl">
-        {/* ... keeping existing HAI form fields ... */}
         <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="font-bold text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tight"><Users size={18} className="text-primary"/> Patient Identification</h3>
@@ -230,7 +248,22 @@ const HAIForm: React.FC = () => {
               <Input label="City" name="city" value={formData.city} onChange={handleChange} readOnly={!isOutsideMakati} className={!isOutsideMakati ? "bg-slate-50 font-bold" : "bg-white"} required />
             </div>
         </section>
-        {/* ... other sections ... */}
+
+        <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-5">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3 uppercase text-sm tracking-tight"><Activity size={18} className="text-primary"/> Infection Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-2">
+                <Select label="HAI Type" name="haiType" options={HAI_TYPES} value={formData.haiType} onChange={handleChange} required />
+                {formData.haiType === 'Other (specify)' && <Input label="Specify HAI Type" name="haiTypeOther" value={formData.haiTypeOther} onChange={handleChange} required />}
+              </div>
+              <div className="flex flex-col gap-2">
+                <Select label="Primary Admission Ward" name="area" options={AREAS} value={formData.area} onChange={handleChange} required />
+                {formData.area === 'Other (specify)' && <Input label="Specify Ward" name="areaOther" value={formData.areaOther} onChange={handleChange} required />}
+              </div>
+              <Input label="Date of Admission" name="dateOfAdmission" type="date" value={formData.dateOfAdmission} onChange={handleChange} required />
+            </div>
+        </section>
+
         <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-5">
             <h3 className="font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3 uppercase text-sm tracking-tight"><FileText size={18} className="text-primary"/> Outcome & Reporting</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -241,7 +274,7 @@ const HAIForm: React.FC = () => {
                 <div className="md:col-span-1">
                     <Input label="Name of Reporter" name="reporterName" value={formData.reporterName} onChange={handleChange} required />
                 </div>
-                <Select label="Professional Designation" name="designation" options={['Doctor', 'Nurse', 'IPC Coordinator', 'Lab Staff', 'Other']} value={formData.designation} onChange={handleChange} required />
+                <Select label="Professional Designation" name="designation" options={['Doctor', 'Nurse', 'IPC Staff', 'Lab Staff', 'Other']} value={formData.designation} onChange={handleChange} required />
                 <div className="md:col-span-2 lg:col-span-1 flex items-end">
                     <button type="submit" disabled={loading} className="w-full h-12 bg-primary text-white rounded-xl font-black uppercase tracking-widest hover:bg-osmak-green-dark transition-all flex items-center justify-center gap-3 shadow-xl shadow-primary/20 active:scale-[0.98]">
                         {loading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />} Submit Report

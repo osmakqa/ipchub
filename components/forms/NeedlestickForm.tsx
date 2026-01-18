@@ -98,11 +98,31 @@ const NeedlestickForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const submissionData = { ...formData };
+    
+    // Merge "Other" fields
+    if (submissionData.jobTitle === 'Others (specify)') {
+      submissionData.jobTitle = submissionData.jobTitleOther || 'Other Staff';
+    }
+    if (submissionData.workLocation === 'Other (specify)') {
+      submissionData.workLocation = submissionData.workLocationOther || 'Other Location';
+    }
+    if (submissionData.exposureType === 'Other') {
+      submissionData.exposureType = submissionData.exposureTypeOther || 'Other Exposure';
+    }
+
+    // Cleanup UI fields
+    delete submissionData.jobTitleOther;
+    delete submissionData.workLocationOther;
+    delete submissionData.exposureTypeOther;
+
     try {
-      await submitReport("Needlestick Injury", formData);
+      await submitReport("Needlestick Injury", submissionData);
       setShowThankYou(true);
-    } catch (error) {
-      alert("Failed to submit report.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to submit.";
+      alert(msg);
     } finally {
       setLoading(false);
     }
@@ -135,8 +155,18 @@ const NeedlestickForm: React.FC = () => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input label="Staff Name" name="hcwName" value={formData.hcwName} onChange={handleChange} placeholder="Last, First" required />
-              <Input label="Hospital Number" name="hospitalNumber" value={formData.hospitalNumber} onChange={handleChange} required />
-              <Select label="Job Title" name="jobTitle" options={JOB_CATEGORIES_NS} value={formData.jobTitle} onChange={handleChange} required />
+              <Input label="Hospital/Employee Number" name="hospitalNumber" value={formData.hospitalNumber} onChange={handleChange} required />
+              <div className="flex flex-col gap-2">
+                <Select label="Job Title" name="jobTitle" options={JOB_CATEGORIES_NS} value={formData.jobTitle} onChange={handleChange} required />
+                {formData.jobTitle === 'Others (specify)' && <Input label="Specify Job Title" name="jobTitleOther" value={formData.jobTitleOther} onChange={handleChange} required />}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input label="Department" name="department" value={formData.department} onChange={handleChange} required />
+              <div className="flex flex-col gap-2">
+                <Select label="Work Location" name="workLocation" options={AREAS} value={formData.workLocation} onChange={handleChange} required />
+                {formData.workLocation === 'Other (specify)' && <Input label="Specify Location" name="workLocationOther" value={formData.workLocationOther} onChange={handleChange} required />}
+              </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
               <Input label="Date of Injury" name="dateOfInjury" type="date" value={formData.dateOfInjury} onChange={handleChange} required />
@@ -161,6 +191,7 @@ const NeedlestickForm: React.FC = () => {
                      </label>
                    ))}
                 </div>
+                {formData.exposureType === 'Other' && <Input label="Specify Exposure" name="exposureTypeOther" value={formData.exposureTypeOther} onChange={handleChange} required />}
               </div>
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                  <Select label="Sharp Device Involved" name="deviceInvolved" options={ALL_DEVICES} value={formData.deviceInvolved} onChange={handleChange} />

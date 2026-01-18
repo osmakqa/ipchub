@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../ui/Layout';
@@ -6,13 +5,13 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import ThankYouModal from '../ui/ThankYouModal';
 import { 
-  AREAS, BARANGAYS, EMBO_BARANGAYS, CIVIL_STATUS, PTB_OUTCOMES, COMORBIDITIES 
+  AREAS, BARANGAYS, EMBO_BARANGAYS, PTB_OUTCOMES, COMORBIDITIES 
 } from '../../constants';
 import { submitReport, calculateAge, extractPatientInfoFromImage } from '../../services/ipcService';
 import { 
   ChevronLeft, Send, Loader2, Camera, User, Activity, Stethoscope, MapPin, 
   Beaker, FileText, Plus, Trash2, Users, Pill, ShieldCheck, Clock, Heart, 
-  Search, Info, AlertTriangle, ClipboardList
+  Search, Info, AlertTriangle, ClipboardList, Sparkles
 } from 'lucide-react';
 
 const PTBForm: React.FC = () => {
@@ -23,8 +22,8 @@ const PTBForm: React.FC = () => {
   const [showThankYou, setShowThankYou] = useState(false);
   const [isOutsideMakati, setIsOutsideMakati] = useState(false);
 
-  const [formData, setFormData] = useState<any>({
-    lastName: '', firstName: '', middleName: '', dob: '', age: '', sex: '', civilStatus: '', hospitalNumber: '', 
+  const initialFormData = {
+    lastName: '', firstName: '', middleName: '', dob: '', age: '', sex: '', hospitalNumber: '', 
     barangay: '', city: 'Makati', 
     dateOfAdmission: '', area: '', areaOther: '', 
     movementHistory: [] as { area: string, date: string }[],
@@ -38,7 +37,9 @@ const PTBForm: React.FC = () => {
     comorbidities: [] as string[], 
     hivTestResult: '', startedOnArt: '', 
     reporterName: '', designation: ''
-  });
+  };
+
+  const [formData, setFormData] = useState<any>(initialFormData);
 
   useEffect(() => { 
     if (formData.dob) {
@@ -46,18 +47,52 @@ const PTBForm: React.FC = () => {
     }
   }, [formData.dob]);
 
+  const handleMagicFill = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const fiveDaysAgo = new Date();
+    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+    const fiveDaysAgoStr = fiveDaysAgo.toISOString().split('T')[0];
+
+    setFormData({
+      ...initialFormData,
+      lastName: 'Delos Reyes',
+      firstName: 'Roberto',
+      middleName: 'Gomez',
+      hospitalNumber: '25-' + Math.floor(Math.random() * 90000 + 10000),
+      dob: '1978-08-22',
+      age: '46',
+      sex: 'Male',
+      barangay: 'Poblacion',
+      city: 'Makati',
+      dateOfAdmission: fiveDaysAgoStr,
+      area: 'Medicine Ward',
+      movementHistory: [
+        { area: 'Emergency Room Complex', date: fiveDaysAgoStr },
+        { area: 'Medicine Ward', date: today }
+      ],
+      classification: 'Bacteriological Confirmed',
+      anatomicalSite: 'Pulmonary',
+      drugSusceptibility: 'RR',
+      treatmentHistory: 'Relapse',
+      xpertResults: [{ date: today, specimen: 'Sputum', result: 'MTB Detected; Rif Res' }],
+      smearResults: [{ date: today, specimen: 'Sputum', result: '2+' }],
+      treatmentStarted: 'Yes',
+      treatmentStartDate: today,
+      comorbidities: ['Diabetes Mellitus', 'Liver Disease'],
+      hivTestResult: 'Non-Reactive',
+      reporterName: 'Nurse J. Reyes',
+      designation: 'Nurse'
+    });
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev: any) => ({ ...prev, [name]: value }));
   };
 
   const resetForm = () => {
-    setFormData({
-        lastName: '', firstName: '', middleName: '', dob: '', hospitalNumber: '', 
-        barangay: '', city: 'Makati', movementHistory: [], xpertResults: [],
-        smearResults: [], classification: '', reporterName: '', designation: '',
-        comorbidities: [], outcome: 'Admitted', anatomicalSite: 'Pulmonary'
-    });
+    setFormData(initialFormData);
+    setIsOutsideMakati(false);
     setShowThankYou(false);
   };
 
@@ -91,12 +126,7 @@ const PTBForm: React.FC = () => {
         if (extractedData) {
           setFormData((prev: any) => ({
             ...prev,
-            lastName: extractedData.lastName || prev.lastName,
-            firstName: extractedData.firstName || prev.firstName,
-            middleName: extractedData.middleName || prev.middleName,
-            hospitalNumber: extractedData.hospitalNumber || prev.hospitalNumber,
-            dob: extractedData.dob || prev.dob,
-            sex: extractedData.sex || prev.sex,
+            ...extractedData
           }));
         }
         setScanning(false);
@@ -137,11 +167,29 @@ const PTBForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const submissionData = { ...formData };
+    
+    // Clean up "Other" admission area
+    if (submissionData.area === 'Other (specify)') {
+      submissionData.area = submissionData.areaOther || 'Other Area';
+    }
+    delete submissionData.areaOther;
+
+    // Clean up transfer history "Other" areas
+    if (submissionData.movementHistory) {
+      submissionData.movementHistory = submissionData.movementHistory.map((m: any) => ({
+        ...m,
+        area: m.area === 'Other (specify)' ? 'Other Ward' : m.area
+      }));
+    }
+
     try {
-      await submitReport("TB Report", formData);
+      await submitReport("TB Report", submissionData);
       setShowThankYou(true);
-    } catch (e) {
-      alert("Failed to submit.");
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "An unexpected error occurred.";
+      alert(`Submission Failed: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -149,9 +197,18 @@ const PTBForm: React.FC = () => {
 
   return (
     <Layout title="TB Case Registration">
-      <button onClick={() => navigate('/')} className="mb-4 flex items-center text-xs font-bold text-gray-500 hover:text-primary transition-colors">
-        <ChevronLeft size={14} /> Back
-      </button>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <button onClick={() => navigate('/')} className="flex items-center text-xs font-bold text-gray-500 hover:text-primary transition-colors">
+          <ChevronLeft size={14} /> Back
+        </button>
+        <button 
+          type="button" 
+          onClick={handleMagicFill}
+          className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl border border-amber-200 text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 transition-all shadow-sm"
+        >
+          <Sparkles size={14} className="text-amber-500" /> Magic Fill (Sample TB Case)
+        </button>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 pb-12">
         {/* Patient Info */}
@@ -173,7 +230,6 @@ const PTBForm: React.FC = () => {
                 <Input label="DOB" name="dob" type="date" value={formData.dob} onChange={handleChange} required />
                 <Input label="Age" name="age" value={formData.age} readOnly className="bg-slate-50 font-bold" />
                 <Select label="Sex" name="sex" options={['Male', 'Female']} value={formData.sex} onChange={handleChange} required />
-                <Select label="Civil Status" name="civilStatus" options={CIVIL_STATUS} value={formData.civilStatus} onChange={handleChange} />
                 
                 <div className="md:col-span-1 lg:col-span-1 flex flex-col justify-end">
                     <label className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase cursor-pointer mb-2">
@@ -198,7 +254,7 @@ const PTBForm: React.FC = () => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Input label="Admission Date" name="dateOfAdmission" type="date" value={formData.dateOfAdmission} onChange={handleChange} required />
-                <Select label="Reporting Area" name="area" options={AREAS} value={formData.area} onChange={handleChange} required />
+                <Select label="Initial Admission Area" name="area" options={AREAS} value={formData.area} onChange={handleChange} required />
                 {formData.area === 'Other (specify)' && <Input label="Specify Ward" name="areaOther" value={formData.areaOther} onChange={handleChange} required />}
             </div>
             
@@ -301,7 +357,7 @@ const PTBForm: React.FC = () => {
                             type="button"
                             onClick={() => handleComorbidityToggle(c)}
                             className={`px-4 py-3 rounded-2xl border-2 font-bold text-xs text-left transition-all ${
-                                formData.comorbidities.includes(c) 
+                                (formData.comorbidities || []).includes(c) 
                                 ? 'bg-primary border-primary text-white shadow-lg' 
                                 : 'bg-slate-50 border-transparent text-slate-500 hover:border-slate-200'
                             }`}
@@ -320,7 +376,7 @@ const PTBForm: React.FC = () => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Select label="Registry Disposition" name="outcome" options={PTB_OUTCOMES} value={formData.outcome} onChange={handleChange} required />
-                {formData.outcome !== 'Admitted' && <Input label="Date of Outcome" name="outcomeDate" type="date" value={formData.outcomeDate} onChange={handleChange} required />}
+                {formData.outcome !== 'Admitted' && formData.outcome !== 'For Admission' && <Input label="Date of Outcome" name="outcomeDate" type="date" value={formData.outcomeDate} onChange={handleChange} required />}
                 <Input label="Name of Reporter" name="reporterName" value={formData.reporterName} onChange={handleChange} required />
                 <Select label="Designation" name="designation" options={['Doctor', 'Nurse', 'IPC Staff', 'DOTS Coordinator', 'Other']} value={formData.designation} onChange={handleChange} required />
             </div>

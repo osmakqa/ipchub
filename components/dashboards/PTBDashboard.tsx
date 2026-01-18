@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
@@ -9,7 +8,6 @@ import PasswordConfirmModal from '../ui/PasswordConfirmModal';
 import { getTBReports, updateTBReport, deleteRecord } from '../../services/ipcService';
 import { 
   AREAS, 
-  CIVIL_STATUS, 
   PTB_OUTCOMES,
   COMORBIDITIES,
   BARANGAYS
@@ -115,7 +113,6 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
       DOB: item.dob || '',
       Age: item.age || '',
       Sex: item.sex || '',
-      Civil_Status: item.civilStatus || '',
       Barangay: item.barangay || '',
       City: item.city || '',
       Admission_Date: item.dateOfAdmission || '',
@@ -519,6 +516,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                               <Stethoscope size={18} className="text-amber-700"/> Diagnostic Classification
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <Select label="Initial Admission Area" name="area" options={AREAS} value={formModal.item.area} onChange={handleInputChange} disabled={!formModal.isEditable} />
                                 <Select label="Classification" name="classification" options={['Bacteriological Confirmed', 'Clinically Diagnosed', 'Presumptive TB']} value={formModal.item.classification} onChange={handleInputChange} disabled={!formModal.isEditable} />
                                 <Select label="Drug Susceptibility" name="drugSusceptibility" options={['Sensitive', 'RR', 'MDR', 'XDR', 'Unknown']} value={formModal.item.drugSusceptibility} onChange={handleInputChange} disabled={!formModal.isEditable} />
                                 <Select label="Treatment History" name="treatmentHistory" options={['New', 'Relapse', 'Treatment After Failure', 'Treatment After Loss to Follow-up', 'Previous Treatment Unknown']} value={formModal.item.treatmentHistory} onChange={handleInputChange} disabled={!formModal.isEditable} />

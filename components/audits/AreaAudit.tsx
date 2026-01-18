@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -25,7 +24,8 @@ import {
     TrendingUp,
     BarChart3,
     Filter,
-    RotateCcw
+    RotateCcw,
+    Sparkles
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
@@ -106,7 +106,6 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     const [category, setCategory] = useState<string>('');
     const [showActionPlanModal, setShowActionPlanModal] = useState(false);
     
-    // Filters
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
     const [selectedQuarter, setSelectedQuarter] = useState('');
 
@@ -116,6 +115,19 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         areaOther: '',
         answers: {} as Record<string, string>
     });
+
+    const handleMagicFill = () => {
+        if (!category) {
+            alert("Select an Audit Category first.");
+            return;
+        }
+        const questions = getQuestions();
+        const autoAnswers: Record<string, string> = {};
+        questions.forEach((q, i) => {
+            autoAnswers[q] = i % 5 === 0 ? 'No' : 'Yes'; // Introduce some gaps for realism
+        });
+        setFormData({ ...formData, area: 'Emergency Room Complex', answers: autoAnswers });
+    };
 
     const [apForm, setApForm] = useState({ 
         action: '', 
@@ -164,7 +176,6 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         return [];
     };
 
-    // Analysis View Mock Data
     const categoryData = [
         { name: 'Infra', score: 85 },
         { name: 'Envi', score: 72 },
@@ -197,8 +208,15 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                         <div className="flex items-center gap-3">
                             <button 
                                 type="button"
-                                onClick={() => setShowActionPlanModal(true)}
+                                onClick={handleMagicFill}
                                 className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all"
+                            >
+                                <Sparkles size={14}/> Magic Fill
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => setShowActionPlanModal(true)}
+                                className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100 transition-all"
                             >
                                 <Zap size={14}/> Add Action Plan
                             </button>
@@ -288,8 +306,9 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                     <option value="2023">2023</option>
                                     <option value="2024">2024</option>
                                     <option value="2025">2025</option>
+                                    <option value="2026">2026</option>
                                 </select>
-                                <select className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:ring-1 focus:ring-amber-500 outline-none font-bold bg-slate-50/50 text-slate-600" value={selectedQuarter} onChange={(e) => setSelectedQuarter(e.target.value)}>
+                                <select className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:ring-1 focus:ring-rose-500 outline-none font-bold bg-slate-50/50 text-slate-600" value={selectedQuarter} onChange={(e) => setSelectedQuarter(e.target.value)}>
                                     <option value="">Full Year</option>
                                     <option value="Q1">Q1</option>
                                     <option value="Q2">Q2</option>
@@ -332,7 +351,6 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                         </div>
                     </div>
 
-                    {/* Area Analysis for Area Audit */}
                     <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6">
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-amber-50 rounded-2xl text-amber-600"><BarChart3 size={24}/></div>
@@ -357,7 +375,6 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                 </div>
             )}
 
-            {/* Action Plan Modal */}
             {showActionPlanModal && (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95">
