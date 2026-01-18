@@ -41,7 +41,8 @@ import {
   User,
   PlusCircle,
   AlertCircle,
-  Edit3
+  Edit3,
+  Download
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend, 
@@ -97,6 +98,36 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
   const getPrivacyValue = (val: string) => {
     if (isAuthenticated || (formModal.show && formModal.isEditable)) return val;
     return val ? `${val[0]}.` : '';
+  };
+
+  const handleExportCSV = () => {
+    if (filteredData.length === 0) return;
+    
+    const exportItems = filteredData.map(item => ({
+      Report_Date: item.dateReported,
+      Patient_Name: formatName(item.lastName, item.firstName),
+      Hospital_Number: item.hospitalNumber,
+      Area: item.area,
+      Classification: item.classification || 'N/A',
+      Anatomical_Site: item.anatomicalSite,
+      Drug_Susceptibility: item.drugSusceptibility,
+      Outcome: item.outcome || 'Admitted',
+      Admission_Date: item.dateOfAdmission,
+      Reporter: item.reporterName
+    }));
+
+    const headers = Object.keys(exportItems[0]).join(',');
+    const rows = exportItems.map(item => 
+      Object.values(item).map(val => `"${String(val).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    const csvContent = `${headers}\n${rows}`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `TB_Registry_${new Date().toISOString().split('T')[0]}.csv`);
+    link.click();
   };
 
   const calculateLOS = (admissionDate: string, outcomeDate?: string) => {
@@ -178,8 +209,6 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
 
     filteredData.forEach(d => {
       const reportMonth = d.dateReported.substring(0, 7);
-      // Fix: Object literal may only specify known properties, and 'name' does not exist in type. 
-      // Also fixed 'month' is undefined error by removing it from initialization.
       if (!monthMap[reportMonth]) monthMap[reportMonth] = { census: 0, discharges: 0 };
       monthMap[reportMonth].census++;
       const c = d.classification || 'Unspecified';
@@ -268,9 +297,18 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                     <button onClick={() => setViewMode('analysis')} className={`px-3 py-1 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'analysis' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500'}`}><BarChart2 size={14} /> Analysis</button>
                 </div>
             </div>
-            <button onClick={() => navigate('/report-ptb')} className="bg-amber-700 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-amber-800 flex items-center gap-2 transition-all active:scale-95 text-xs">
-              <PlusCircle size={18} /> Register Case
-            </button>
+            <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleExportCSV}
+                  disabled={filteredData.length === 0}
+                  className="bg-white text-slate-600 px-4 py-2 rounded-lg font-black uppercase tracking-widest border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 text-xs"
+                >
+                  <Download size={18} /> Export CSV
+                </button>
+                <button onClick={() => navigate('/report-ptb')} className="bg-amber-700 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-amber-800 flex items-center gap-2 transition-all active:scale-95 text-xs">
+                  <PlusCircle size={18} /> Register Case
+                </button>
+            </div>
         </div>
 
         <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-200 overflow-x-auto print:hidden">
@@ -381,7 +419,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                             <div className="flex items-center justify-between"><span className="text-[7px] font-black uppercase text-slate-400 group-hover:text-red-600 transition-colors">No Dx Result</span><AlertCircle size={10} className="text-red-400 opacity-50" /></div>
                             <span className="text-2xl font-black text-red-600 leading-none">{summaryStats.missingDiagnostics}</span>
                         </button>
-                  </div> {/* Removed extra closing div that was on line 503 */}
+                  </div>
 
                   <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-2">
                       <div className="flex items-center gap-1.5 border-b border-slate-50 pb-1.5"><Home size={10} className="text-slate-400" /><span className="text-[8px] font-black uppercase tracking-widest text-slate-400 leading-none">Isolation Census</span></div>

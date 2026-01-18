@@ -3,7 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../ui/Layout';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { AREAS, NOTIFIABLE_DISEASES, BARANGAYS, EMBO_BARANGAYS, PATIENT_OUTCOMES } from '../../constants';
+import { 
+  AREAS, NOTIFIABLE_DISEASES, BARANGAYS, EMBO_BARANGAYS, PATIENT_OUTCOMES,
+  DENGUE_VACCINE_OPTIONS, DENGUE_CLINICAL_CLASSES,
+  ILI_TRAVEL_OPTIONS, ILI_VACCINE_OPTIONS,
+  LEPTO_EXPOSURE_OPTIONS,
+  AFP_POLIO_VACCINE_OPTIONS,
+  HFMD_SYMPTOMS, HFMD_COMMUNITY_CASES_OPTIONS, HFMD_EXPOSURE_TYPE_OPTIONS,
+  MEASLES_SYMPTOMS, MEASLES_VACCINE_OPTIONS,
+  ROTA_VACCINE_OPTIONS,
+  RABIES_RIG_OPTIONS, RABIES_VACCINE_PRIOR_OPTIONS,
+  CHIKUNGUNYA_SYMPTOMS, CHIKUNGUNYA_TRAVEL_OPTIONS,
+  PERTUSSIS_VACCINE_OPTIONS, PERTUSSIS_SYMPTOMS,
+  AMES_SYMPTOMS, AMES_VACCINES_LIST, AMES_TRAVEL_OPTIONS,
+  SARI_MEDICATIONS, SARI_HOUSEHOLD_ILI_OPTIONS, SARI_SCHOOL_ILI_OPTIONS, 
+  SARI_FLU_VACCINE_OPTIONS, SARI_ANIMAL_EXPOSURE_OPTIONS, SARI_TRAVEL_OPTIONS
+} from '../../constants';
 import { submitReport, calculateAge, extractPatientInfoFromImage } from '../../services/ipcService';
 import { ChevronLeft, Send, Loader2, Camera, Plus, Trash2, Users, FileText, Activity, Syringe, Plane, ShieldCheck, Pill, Droplets, Wind, MapPin, AlertTriangle } from 'lucide-react';
 
@@ -275,7 +290,7 @@ const NotifiableDiseaseForm: React.FC = () => {
                 <div className="p-6 bg-red-50/50 rounded-[1.5rem] border border-red-100 flex flex-col gap-5 animate-in slide-in-from-top-2">
                     <h4 className="text-xs font-black text-red-800 uppercase flex items-center gap-2"><Syringe size={14}/> Dengue Specific Questionnaire</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <Select label="Received Dengue Vaccine?" name="dengueVaccine" options={['Yes', 'No']} value={commonData.dengueVaccine} onChange={handleCommonChange} />
+                        <Select label="Received Dengue Vaccine?" name="dengueVaccine" options={DENGUE_VACCINE_OPTIONS} value={commonData.dengueVaccine} onChange={handleCommonChange} />
                         {commonData.dengueVaccine === 'Yes' && (
                             <>
                                 <Input label="Date of 1st Dose" name="dengueDose1" type="date" value={commonData.dengueDose1} onChange={handleCommonChange} />
@@ -283,7 +298,7 @@ const NotifiableDiseaseForm: React.FC = () => {
                             </>
                         )}
                         <div className="lg:col-span-3">
-                            <Select label="Clinical Classification" name="dengueClinicalClass" options={['dengue without warning signs', 'dengue with warning signs', 'severe dengue']} value={commonData.dengueClinicalClass} onChange={handleCommonChange} />
+                            <Select label="Clinical Classification" name="dengueClinicalClass" options={DENGUE_CLINICAL_CLASSES} value={commonData.dengueClinicalClass} onChange={handleCommonChange} />
                         </div>
                     </div>
                 </div>
@@ -293,9 +308,9 @@ const NotifiableDiseaseForm: React.FC = () => {
                 <div className="p-6 bg-blue-50/50 rounded-[1.5rem] border border-blue-100 flex flex-col gap-5 animate-in slide-in-from-top-2">
                     <h4 className="text-xs font-black text-blue-800 uppercase flex items-center gap-2"><Plane size={14}/> ILI Surveillance Details</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Select label="History of Travel within 21 days?" name="iliTravel" options={['Yes', 'No']} value={commonData.iliTravel} onChange={handleCommonChange} />
+                        <Select label="History of Travel within 21 days?" name="iliTravel" options={ILI_TRAVEL_OPTIONS} value={commonData.iliTravel} onChange={handleCommonChange} />
                         {commonData.iliTravel === 'Yes' && <Input label="Travel Location" name="iliTravelLoc" value={commonData.iliTravelLoc} onChange={handleCommonChange} />}
-                        <Select label="Received Influenza Vaccine?" name="iliVaccine" options={['Yes', 'No']} value={commonData.iliVaccine} onChange={handleCommonChange} />
+                        <Select label="Received Influenza Vaccine?" name="iliVaccine" options={ILI_VACCINE_OPTIONS} value={commonData.iliVaccine} onChange={handleCommonChange} />
                         {commonData.iliVaccine === 'Yes' && <Input label="Date of Last Dose (Month & Year)" name="iliVaccineDate" value={commonData.iliVaccineDate} onChange={handleCommonChange} placeholder="e.g. October 2023" />}
                     </div>
                 </div>
@@ -305,7 +320,7 @@ const NotifiableDiseaseForm: React.FC = () => {
                 <div className="p-6 bg-amber-50/50 rounded-[1.5rem] border border-amber-100 flex flex-col gap-5 animate-in slide-in-from-top-2">
                     <h4 className="text-xs font-black text-amber-800 uppercase flex items-center gap-2"><Droplets size={14}/> Leptospirosis Exposure Tracking</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Select label="Exposure to contaminated animal urine?" name="leptoExposure" options={['wading in flood waters', 'rice fields', 'drainage', 'No']} value={commonData.leptoExposure} onChange={handleCommonChange} />
+                        <Select label="Exposure to contaminated animal urine?" name="leptoExposure" options={LEPTO_EXPOSURE_OPTIONS} value={commonData.leptoExposure} onChange={handleCommonChange} />
                         <Input label="Place of Exposure" name="leptoPlace" value={commonData.leptoPlace} onChange={handleCommonChange} placeholder="Enter specific location" />
                     </div>
                 </div>
@@ -314,7 +329,7 @@ const NotifiableDiseaseForm: React.FC = () => {
             {commonData.disease === "Acute Flaccid Paralysis (Poliomyelitis)" && (
                 <div className="p-6 bg-emerald-50/50 rounded-[1.5rem] border border-emerald-100 animate-in slide-in-from-top-2">
                     <div className="max-w-xs">
-                        <Select label="Polio Vaccine Given?" name="afpPolioVaccine" options={['Yes', 'No', 'Unknown']} value={commonData.afpPolioVaccine} onChange={handleCommonChange} />
+                        <Select label="Polio Vaccine Given?" name="afpPolioVaccine" options={AFP_POLIO_VACCINE_OPTIONS} value={commonData.afpPolioVaccine} onChange={handleCommonChange} />
                     </div>
                 </div>
             )}
@@ -323,15 +338,15 @@ const NotifiableDiseaseForm: React.FC = () => {
                 <div className="p-6 bg-orange-50/50 rounded-[1.5rem] border border-orange-100 flex flex-col gap-5 animate-in slide-in-from-top-2">
                     <h4 className="text-xs font-black text-orange-800 uppercase flex items-center gap-2"><Activity size={14}/> HFMD Symptom Assessment</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {['Fever', 'Rash: Palms', 'Rash: Fingers', 'Rash: Sole of Feet', 'Rash: Buttocks', 'Rash: Mouth Ulcers', 'Painful', 'Maculopapular', 'Papulovesicular', 'Loss of Appetite', 'Body Malaise', 'Sore throat', 'Nausea or vomiting', 'Difficulty of Breathing'].map(sym => (
+                        {HFMD_SYMPTOMS.map(sym => (
                             <label key={sym} className="flex items-center gap-2 text-[10px] font-bold text-slate-600 bg-white p-2 rounded-lg border border-orange-200 cursor-pointer hover:bg-orange-50">
                                 <input type="checkbox" checked={commonData.hfmdSymptoms.includes(sym)} onChange={() => handleCheckboxList('hfmdSymptoms', sym)} className="rounded text-orange-500" /> {sym}
                             </label>
                         ))}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                        <Select label="Known Cases in Community?" name="hfmdCommunityCases" options={['Yes', 'No', 'Unknown']} value={commonData.hfmdCommunityCases} onChange={handleCommonChange} />
-                        <Select label="Exposure Site Type" name="hfmdExposureType" options={['Day Care', 'Home', 'Community', 'Health Facility', 'School', 'Dormitory', 'Others']} value={commonData.hfmdExposureType} onChange={handleCommonChange} />
+                        <Select label="Known Cases in Community?" name="hfmdCommunityCases" options={HFMD_COMMUNITY_CASES_OPTIONS} value={commonData.hfmdCommunityCases} onChange={handleCommonChange} />
+                        <Select label="Exposure Site Type" name="hfmdExposureType" options={HFMD_EXPOSURE_TYPE_OPTIONS} value={commonData.hfmdExposureType} onChange={handleCommonChange} />
                     </div>
                 </div>
             )}
@@ -340,14 +355,14 @@ const NotifiableDiseaseForm: React.FC = () => {
                 <div className="p-6 bg-rose-50/50 rounded-[1.5rem] border border-rose-100 flex flex-col gap-5 animate-in slide-in-from-top-2">
                     <h4 className="text-xs font-black text-rose-800 uppercase flex items-center gap-2"><Activity size={14}/> Measles Clinical Checklist</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {['Fever', 'Rash', 'Cough', 'Koplik Sign', 'Coryza', 'Conjunctivitis', 'Arthritis', 'Swollen Lymphatic'].map(sym => (
+                        {MEASLES_SYMPTOMS.map(sym => (
                             <label key={sym} className="flex items-center gap-2 text-[10px] font-bold text-slate-600 bg-white p-2 rounded-lg border border-rose-200 cursor-pointer">
                                 <input type="checkbox" checked={commonData.measlesSymptoms.includes(sym)} onChange={() => handleCheckboxList('measlesSymptoms', sym)} className="rounded text-rose-500" /> {sym}
                             </label>
                         ))}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                        <Select label="Received Measles Vaccine?" name="measlesVaccine" options={['Yes', 'No', 'Unknown']} value={commonData.measlesVaccine} onChange={handleCommonChange} />
+                        <Select label="Received Measles Vaccine?" name="measlesVaccine" options={MEASLES_VACCINE_OPTIONS} value={commonData.measlesVaccine} onChange={handleCommonChange} />
                         {commonData.measlesVaccine === 'Yes' && <Input label="Date of Last Dose (Date or Unrecalled)" name="measlesVaccineDate" value={commonData.measlesVaccineDate} onChange={handleCommonChange} />}
                     </div>
                 </div>
@@ -356,7 +371,7 @@ const NotifiableDiseaseForm: React.FC = () => {
             {commonData.disease === "Rotavirus" && (
                 <div className="p-6 bg-indigo-50/50 rounded-[1.5rem] border border-indigo-100 flex flex-col gap-5 animate-in slide-in-from-top-2">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Select label="Received Rotavirus Vaccine?" name="rotaVaccine" options={['Yes', 'No', 'Unknown']} value={commonData.rotaVaccine} onChange={handleCommonChange} />
+                        <Select label="Received Rotavirus Vaccine?" name="rotaVaccine" options={ROTA_VACCINE_OPTIONS} value={commonData.rotaVaccine} onChange={handleCommonChange} />
                         {commonData.rotaVaccine === 'Yes' && <Input label="Date of Last Dose (Date or Unrecalled)" name="rotaVaccineDate" value={commonData.rotaVaccineDate} onChange={handleCommonChange} />}
                     </div>
                 </div>
@@ -366,8 +381,8 @@ const NotifiableDiseaseForm: React.FC = () => {
                 <div className="p-6 bg-slate-900 rounded-[1.5rem] text-white flex flex-col gap-5 animate-in slide-in-from-top-2 shadow-xl">
                     <h4 className="text-xs font-black text-slate-400 uppercase flex items-center gap-2 tracking-widest"><ShieldCheck size={14} className="text-red-500" /> Rabies Post-Exposure Log</h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Select label="Received Immunoglobulin?" name="rabiesRIG" options={['Yes', 'No']} value={commonData.rabiesRIG} onChange={handleCommonChange} className="bg-slate-800 text-white border-slate-700" />
-                        <Select label="Completed Prior Vaccine?" name="rabiesVaccinePrior" options={['Yes', 'No']} value={commonData.rabiesVaccinePrior} onChange={handleCommonChange} className="bg-slate-800 text-white border-slate-700" />
+                        <Select label="Received Immunoglobulin?" name="rabiesRIG" options={RABIES_RIG_OPTIONS} value={commonData.rabiesRIG} onChange={handleCommonChange} className="bg-slate-800 text-white border-slate-700" />
+                        <Select label="Completed Prior Vaccine?" name="rabiesVaccinePrior" options={RABIES_VACCINE_PRIOR_OPTIONS} value={commonData.rabiesVaccinePrior} onChange={handleCommonChange} className="bg-slate-800 text-white border-slate-700" />
                         <Input label="Month & Year 1st Dose" name="rabiesVaccineDate" value={commonData.rabiesVaccineDate} onChange={handleCommonChange} className="bg-slate-800 text-white border-slate-700" placeholder="MM/YYYY" />
                     </div>
                 </div>
@@ -377,14 +392,14 @@ const NotifiableDiseaseForm: React.FC = () => {
                 <div className="p-6 bg-emerald-50/50 rounded-[1.5rem] border border-emerald-100 flex flex-col gap-5 animate-in slide-in-from-top-2">
                     <h4 className="text-xs font-black text-emerald-800 uppercase flex items-center gap-2"><Activity size={14}/> Chikungunya Symptom Checklist</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {['Fever', 'Arthritis', 'Arthalgia', 'Periarticular edema', 'Skin manifestations', 'Myalgia', 'Back Pain', 'Headache', 'Nausea', 'Mucosal Bleeding', 'Vomiting', 'Asthenia', 'Meningoencephalitis'].map(sym => (
+                        {CHIKUNGUNYA_SYMPTOMS.map(sym => (
                             <label key={sym} className="flex items-center gap-2 text-[10px] font-bold text-slate-600 bg-white p-2 rounded-lg border border-emerald-200 cursor-pointer">
                                 <input type="checkbox" checked={commonData.chikSymptoms.includes(sym)} onChange={() => handleCheckboxList('chikSymptoms', sym)} className="rounded text-emerald-500" /> {sym}
                             </label>
                         ))}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                        <Select label="Travel within 30 days?" name="chikTravel" options={['Yes', 'No']} value={commonData.chikTravel} onChange={handleCommonChange} />
+                        <Select label="Travel within 30 days?" name="chikTravel" options={CHIKUNGUNYA_TRAVEL_OPTIONS} value={commonData.chikTravel} onChange={handleCommonChange} />
                         {commonData.chikTravel === 'Yes' && <Input label="Destination" name="chikTravelLoc" value={commonData.chikTravelLoc} onChange={handleCommonChange} />}
                     </div>
                 </div>
@@ -394,10 +409,10 @@ const NotifiableDiseaseForm: React.FC = () => {
                 <div className="p-6 bg-teal-50/50 rounded-[1.5rem] border border-teal-100 flex flex-col gap-5 animate-in slide-in-from-top-2">
                     <h4 className="text-xs font-black text-teal-800 uppercase flex items-center gap-2"><Activity size={14}/> Pertussis Assessment</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Select label="Received Vaccine?" name="pertVaccine" options={['Yes', 'No', 'Unknown']} value={commonData.pertVaccine} onChange={handleCommonChange} />
+                        <Select label="Received Vaccine?" name="pertVaccine" options={PERTUSSIS_VACCINE_OPTIONS} value={commonData.pertVaccine} onChange={handleCommonChange} />
                         {commonData.pertVaccine === 'Yes' && <Input label="Last Dose (Date/Unrecalled)" name="pertVaccineDate" value={commonData.pertVaccineDate} onChange={handleCommonChange} />}
                         <div className="md:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-2">
-                            {['Post tussive vomiting', 'Cough lasting at least 2 weeks', 'Apnea', 'Paroxysms of coughing', 'Inspiratory whooping'].map(sym => (
+                            {PERTUSSIS_SYMPTOMS.map(sym => (
                                 <label key={sym} className="flex items-center gap-2 text-[10px] font-bold text-slate-600 bg-white p-2 rounded-lg border border-teal-200 cursor-pointer">
                                     <input type="checkbox" checked={commonData.pertSymptoms.includes(sym)} onChange={() => handleCheckboxList('pertSymptoms', sym)} className="rounded text-teal-500" /> {sym}
                                 </label>
@@ -411,7 +426,7 @@ const NotifiableDiseaseForm: React.FC = () => {
                 <div className="p-6 bg-slate-50 rounded-[1.5rem] border border-slate-200 flex flex-col gap-6 animate-in slide-in-from-top-2">
                     <h4 className="text-xs font-black text-slate-800 uppercase flex items-center gap-2"><ShieldCheck size={14}/> AMES - Bacterial Meningitis Questionnaire</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {['Fever', 'Altered Mental', 'New Seizures', 'Stiff Neck', 'Meningeal Signs', 'CNS Infection', 'CNS Others'].map(sym => (
+                        {AMES_SYMPTOMS.map(sym => (
                             <label key={sym} className="flex items-center gap-2 text-[10px] font-bold text-slate-600 bg-white p-2 rounded-lg border border-slate-300 cursor-pointer">
                                 <input type="checkbox" checked={commonData.amesSymptoms.includes(sym)} onChange={() => handleCheckboxList('amesSymptoms', sym)} className="rounded text-slate-700" /> {sym}
                             </label>
@@ -420,7 +435,7 @@ const NotifiableDiseaseForm: React.FC = () => {
                     <div className="flex flex-col gap-3">
                         <h5 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-1">Comprehensive Vaccination History</h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {['Japanese Encephalitis', 'Penta HIB', 'Measles', 'Meningococcal', 'Pneumococcal', 'PCV 10', 'PCV 13'].map(v => (
+                            {AMES_VACCINES_LIST.map(v => (
                                 <div key={v} className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col gap-2">
                                     <span className="text-[10px] font-black text-slate-800 leading-tight uppercase">{v}</span>
                                     <Input label="No. of Doses" value={commonData.amesVaccines[v]?.doses || ''} onChange={e => handleAmesVaccine(v, 'doses', e.target.value)} />
@@ -430,7 +445,7 @@ const NotifiableDiseaseForm: React.FC = () => {
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Select label="History of Travel?" name="amesTravel" options={['Yes', 'No']} value={commonData.amesTravel} onChange={handleCommonChange} />
+                        <Select label="History of Travel?" name="amesTravel" options={AMES_TRAVEL_OPTIONS} value={commonData.amesTravel} onChange={handleCommonChange} />
                         {commonData.amesTravel === 'Yes' && <Input label="Specify Destination" name="amesTravelLoc" value={commonData.amesTravelLoc} onChange={handleCommonChange} />}
                     </div>
                 </div>
@@ -442,7 +457,7 @@ const NotifiableDiseaseForm: React.FC = () => {
                     <div className="flex flex-col gap-3">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Medications prior to consultation</label>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                            {['Ranitidine', 'Amantidine', 'Zanamivir', 'Oseltamivir'].map(med => (
+                            {SARI_MEDICATIONS.map(med => (
                                 <label key={med} className="flex items-center gap-2 text-[10px] font-bold text-slate-600 bg-white p-2 rounded-lg border border-sky-200 cursor-pointer">
                                     <input type="checkbox" checked={commonData.sariMeds.includes(med)} onChange={() => handleCheckboxList('sariMeds', med)} className="rounded text-sky-500" /> {med}
                                 </label>
@@ -451,14 +466,14 @@ const NotifiableDiseaseForm: React.FC = () => {
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Select label="ILI in Household?" name="sariHouseholdILI" options={['Yes', 'No']} value={commonData.sariHouseholdILI} onChange={handleCommonChange} />
-                        <Select label="ILI in School/Daycare?" name="sariSchoolILI" options={['Yes', 'No']} value={commonData.sariSchoolILI} onChange={handleCommonChange} />
-                        <Select label="Flu vaccine (last year)?" name="sariFluVaccine" options={['Yes', 'No']} value={commonData.sariFluVaccine} onChange={handleCommonChange} />
+                        <Select label="ILI in Household?" name="sariHouseholdILI" options={SARI_HOUSEHOLD_ILI_OPTIONS} value={commonData.sariHouseholdILI} onChange={handleCommonChange} />
+                        <Select label="ILI in School/Daycare?" name="sariSchoolILI" options={SARI_SCHOOL_ILI_OPTIONS} value={commonData.sariSchoolILI} onChange={handleCommonChange} />
+                        <Select label="Flu vaccine (last year)?" name="sariFluVaccine" options={SARI_FLU_VACCINE_OPTIONS} value={commonData.sariFluVaccine} onChange={handleCommonChange} />
                     </div>
                     <div className="flex flex-col gap-3">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">History of exposure to:</label>
                         <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-                            {['Bats', 'Poultry/Migratory Birds', 'Camels', 'Pigs', 'Horses'].map(ani => (
+                            {SARI_ANIMAL_EXPOSURE_OPTIONS.map(ani => (
                                 <label key={ani} className="flex items-center gap-2 text-[10px] font-bold text-slate-600 bg-white p-2 rounded-lg border border-sky-200 cursor-pointer">
                                     <input type="checkbox" checked={commonData.sariAnimalExposure.includes(ani)} onChange={() => handleCheckboxList('sariAnimalExposure', ani)} className="rounded text-sky-500" /> {ani}
                                 </label>
@@ -466,7 +481,7 @@ const NotifiableDiseaseForm: React.FC = () => {
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Select label="History of Travel?" name="sariTravel" options={['Yes', 'No']} value={commonData.sariTravel} onChange={handleCommonChange} />
+                        <Select label="History of Travel?" name="sariTravel" options={SARI_TRAVEL_OPTIONS} value={commonData.sariTravel} onChange={handleCommonChange} />
                         {commonData.sariTravel === 'Yes' && <Input label="Destination" name="sariTravelLoc" value={commonData.sariTravelLoc} onChange={handleCommonChange} />}
                     </div>
                 </div>

@@ -18,20 +18,21 @@ import {
   BarChart2, 
   MapPin, 
   Plus, 
-  Clock,
-  Home,
-  Users,
-  Filter,
-  RotateCcw,
-  Printer,
-  Calendar,
-  Activity,
-  ArrowRightLeft,
-  PlusCircle,
-  Bed,
-  Edit3,
-  FileText,
-  Trash2
+  Clock, 
+  Home, 
+  Users, 
+  Filter, 
+  RotateCcw, 
+  Printer, 
+  Calendar, 
+  Activity, 
+  ArrowRightLeft, 
+  PlusCircle, 
+  Bed, 
+  Edit3, 
+  FileText, 
+  Trash2,
+  Download
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, LineChart, Line } from 'recharts';
 
@@ -83,6 +84,35 @@ const IsolationDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMo
   const getPrivacyValue = (val: string) => {
     if (isAuthenticated || (formModal.show && formModal.isEditable)) return val;
     return val ? `${val[0]}.` : '';
+  };
+
+  const handleExportCSV = () => {
+    if (filteredData.length === 0) return;
+    
+    const exportItems = filteredData.map(item => ({
+      Report_Date: item.dateReported,
+      Patient_Name: formatName(item.lastName, item.firstName),
+      Hospital_Number: item.hospitalNumber,
+      Diagnosis: item.diagnosis,
+      Isolation_Room: item.area,
+      Transferred_From: item.transferredFrom,
+      Entry_Date: item.transferDate,
+      Status: item.outcome || 'Admitted',
+      Reporter: item.reporterName
+    }));
+
+    const headers = Object.keys(exportItems[0]).join(',');
+    const rows = exportItems.map(item => 
+      Object.values(item).map(val => `"${String(val).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    const csvContent = `${headers}\n${rows}`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Isolation_Registry_${new Date().toISOString().split('T')[0]}.csv`);
+    link.click();
   };
 
   const handleQuarterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -190,9 +220,18 @@ const IsolationDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMo
                     <button onClick={() => setViewMode('analysis')} className={`px-3 py-1 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'analysis' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}><BarChart2 size={14} /> Analysis</button>
                 </div>
             </div>
-            <button onClick={() => navigate('/report-isolation')} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-indigo-700 flex items-center gap-2 transition-all active:scale-95 text-xs">
-              <PlusCircle size={18} /> Register Admission
-            </button>
+            <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleExportCSV}
+                  disabled={filteredData.length === 0}
+                  className="bg-white text-slate-600 px-4 py-2 rounded-lg font-black uppercase tracking-widest border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 text-xs"
+                >
+                  <Download size={18} /> Export CSV
+                </button>
+                <button onClick={() => navigate('/report-isolation')} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-indigo-700 flex items-center gap-2 transition-all active:scale-95 text-xs">
+                  <PlusCircle size={18} /> Register Admission
+                </button>
+            </div>
         </div>
 
         <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-200 overflow-x-auto print:hidden">

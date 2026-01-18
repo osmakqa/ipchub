@@ -20,23 +20,24 @@ import {
   List, 
   BarChart2, 
   Plus, 
-  MapPin,
-  ShieldCheck,
-  Filter,
-  RotateCcw,
-  Printer,
-  Calendar,
-  Users,
-  Wind,
-  Droplets,
-  Syringe,
-  PlusCircle,
-  TrendingUp,
-  AlertCircle,
-  FileText,
-  Clock,
-  Edit3,
-  Trash2
+  MapPin, 
+  ShieldCheck, 
+  Filter, 
+  RotateCcw, 
+  Printer, 
+  Calendar, 
+  Users, 
+  Wind, 
+  Droplets, 
+  Syringe, 
+  PlusCircle, 
+  TrendingUp, 
+  AlertCircle, 
+  FileText, 
+  Clock, 
+  Edit3, 
+  Trash2,
+  Download
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend, 
@@ -121,6 +122,35 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
       return matchesYear && matchesType && matchesArea && matchesOutcome && matchesDateRange;
     });
   }, [data, filterType, filterArea, filterOutcome, startDate, endDate, selectedYear]);
+
+  const handleExportCSV = () => {
+    if (filteredData.length === 0) return;
+    
+    // Prepare headers and data
+    const exportItems = filteredData.map(item => ({
+      Date_Reported: item.dateReported,
+      Patient_Name: formatName(item.lastName, item.firstName),
+      Hospital_Number: item.hospitalNumber,
+      Area: item.area,
+      HAI_Type: item.haiType,
+      Outcome: item.outcome || 'Admitted',
+      Admission_Date: item.dateOfAdmission,
+      Reporter: item.reporterName
+    }));
+
+    const headers = Object.keys(exportItems[0]).join(',');
+    const rows = exportItems.map(item => 
+      Object.values(item).map(val => `"${String(val).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    const csvContent = `${headers}\n${rows}`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `HAI_Registry_${new Date().toISOString().split('T')[0]}.csv`);
+    link.click();
+  };
 
   const summaryStats = useMemo(() => {
     const activePatients = data.filter(d => !d.outcome || d.outcome === 'Admitted' || d.outcome === 'ER-level');
@@ -248,6 +278,13 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                 </div>
             </div>
             <div className="flex gap-2">
+                <button 
+                  onClick={handleExportCSV}
+                  disabled={filteredData.length === 0}
+                  className="bg-white text-slate-600 px-4 py-2 rounded-lg font-black uppercase tracking-widest border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 text-xs"
+                >
+                  <Download size={18} /> Export CSV
+                </button>
                 <button onClick={() => navigate('/report-hai')} className="bg-primary text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow-lg hover:bg-osmak-green-dark flex items-center gap-2 transition-all active:scale-95 text-xs">
                   <PlusCircle size={18} /> Report Case
                 </button>

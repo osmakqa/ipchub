@@ -1,4 +1,5 @@
 
+
 export const AREAS = [
   "OBGyne Ward",
   "NICU",
@@ -58,6 +59,77 @@ export const NOTIFIABLE_DISEASES = [
   "Zika Virus",
   "Other (specify)"
 ];
+
+// --- Notifiable Disease Specific Constants ---
+
+// Dengue
+export const DENGUE_VACCINE_OPTIONS = ['Yes', 'No'];
+export const DENGUE_CLINICAL_CLASSES = ['dengue without warning signs', 'dengue with warning signs', 'severe dengue'];
+
+// Influenza-like Illness
+export const ILI_TRAVEL_OPTIONS = ['Yes', 'No'];
+export const ILI_VACCINE_OPTIONS = ['Yes', 'No'];
+
+// Leptospirosis
+export const LEPTO_EXPOSURE_OPTIONS = ['wading in flood waters', 'rice fields', 'drainage', 'No'];
+
+// Acute Flaccid Paralysis
+export const AFP_POLIO_VACCINE_OPTIONS = ['Yes', 'No', 'Unknown'];
+
+// Hand, Foot and Mouth Disease
+export const HFMD_SYMPTOMS = [
+  'Fever', 'Rash: Palms', 'Rash: Fingers', 'Rash: Sole of Feet', 'Rash: Buttocks',
+  'Rash: Mouth Ulcers', 'Painful', 'Maculopapular', 'Papulovesicular',
+  'Loss of Appetite', 'Body Malaise', 'Sore throat', 'Nausea or vomiting', 'Difficulty of Breathing'
+];
+export const HFMD_COMMUNITY_CASES_OPTIONS = ['Yes', 'No', 'Unknown'];
+export const HFMD_EXPOSURE_TYPE_OPTIONS = ['Day Care', 'Home', 'Community', 'Health Facility', 'School', 'Dormitory', 'Others'];
+
+// Measles
+export const MEASLES_SYMPTOMS = [
+  'Fever', 'Rash', 'Cough', 'Koplik Sign', 'Coryza', 'Conjunctivitis', 'Arthritis', 'Swollen Lymphatic'
+];
+export const MEASLES_VACCINE_OPTIONS = ['Yes', 'No', 'Unknown'];
+
+// Rotavirus
+export const ROTA_VACCINE_OPTIONS = ['Yes', 'No', 'Unknown'];
+
+// Rabies
+export const RABIES_RIG_OPTIONS = ['Yes', 'No'];
+export const RABIES_VACCINE_PRIOR_OPTIONS = ['Yes', 'No'];
+
+// Chikungunya Viral Disease
+export const CHIKUNGUNYA_SYMPTOMS = [
+  'Fever', 'Arthritis', 'Arthalgia', 'Periarticular edema', 'Skin manifestations',
+  'Myalgia', 'Back Pain', 'Headache', 'Nausea', 'Mucosal Bleeding', 'Vomiting',
+  'Asthenia', 'Meningoencephalitis'
+];
+export const CHIKUNGUNYA_TRAVEL_OPTIONS = ['Yes', 'No'];
+
+// Pertussis
+export const PERTUSSIS_VACCINE_OPTIONS = ['Yes', 'No', 'Unknown'];
+export const PERTUSSIS_SYMPTOMS = [
+  'Post tussive vomiting', 'Cough lasting at least 2 weeks', 'Apnea',
+  'Paroxysms of coughing', 'Inspiratory whooping'
+];
+
+// AMES / Bacterial Meningitis
+export const AMES_SYMPTOMS = [
+  'Fever', 'Altered Mental', 'New Seizures', 'Stiff Neck', 'Meningeal Signs', 'CNS Infection', 'CNS Others'
+];
+export const AMES_VACCINES_LIST = [
+  'Japanese Encephalitis', 'Penta HIB', 'Measles', 'Meningococcal', 'Pneumococcal', 'PCV 10', 'PCV 13'
+];
+export const AMES_TRAVEL_OPTIONS = ['Yes', 'No'];
+
+// Severe Acute Respiratory Infection
+export const SARI_MEDICATIONS = ['Ranitidine', 'Amantidine', 'Zanamivir', 'Oseltamivir'];
+export const SARI_HOUSEHOLD_ILI_OPTIONS = ['Yes', 'No'];
+export const SARI_SCHOOL_ILI_OPTIONS = ['Yes', 'No'];
+export const SARI_FLU_VACCINE_OPTIONS = ['Yes', 'No'];
+export const SARI_ANIMAL_EXPOSURE_OPTIONS = ['Bats', 'Poultry/Migratory Birds', 'Camels', 'Pigs', 'Horses'];
+export const SARI_TRAVEL_OPTIONS = ['Yes', 'No'];
+
 
 export const HAI_TYPES = [
   "Healthcare-Associated Pneumonia",
