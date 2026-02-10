@@ -29,7 +29,9 @@ import {
   Sparkles,
   Calendar,
   Loader2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ArrowRight,
+  Book
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
@@ -78,24 +80,34 @@ interface ModuleConfig {
 const OverviewModule: React.FC = () => {
     const navigate = useNavigate();
     const [, setSearchParams] = useSearchParams();
+    const { isAuthenticated } = useAuth();
     const [counts, setCounts] = useState({ hai: 0, notifiable: 0, tb: 0, isolation: 0 });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchStats = async () => {
-            const [hai, notifiable, tb, isolation] = await Promise.all([
-                getHAIReports(), getNotifiableReports(), getTBReports(), getIsolationReports()
-            ]);
-            setCounts({
-                hai: hai.length,
-                notifiable: notifiable.length,
-                tb: tb.length,
-                isolation: isolation.length
-            });
-            setLoading(false);
+            if (!isAuthenticated) {
+                setLoading(false);
+                return;
+            }
+            try {
+                const [hai, notifiable, tb, isolation] = await Promise.all([
+                    getHAIReports(), getNotifiableReports(), getTBReports(), getIsolationReports()
+                ]);
+                setCounts({
+                    hai: hai.length,
+                    notifiable: notifiable.length,
+                    tb: tb.length,
+                    isolation: isolation.length
+                });
+            } catch (e) {
+                console.error("Stats fetch failed", e);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchStats();
-    }, []);
+    }, [isAuthenticated]);
 
     const handleQuickNav = (id: string) => setSearchParams({ module: id });
     
@@ -116,7 +128,8 @@ const OverviewModule: React.FC = () => {
     ];
 
     return (
-        <div className="flex flex-col gap-8 max-w-[1400px] mx-auto">
+        <div className="flex flex-col gap-10 max-w-[1400px] mx-auto">
+            {/* Action Bar */}
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col gap-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -134,16 +147,51 @@ const OverviewModule: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat) => (
-                    <button key={stat.id} onClick={() => handleQuickNav(stat.id)} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4 text-left hover:border-primary transition-all group min-h-[160px]">
-                        <div className="flex items-center justify-between"><div className={`p-3 ${stat.bg} ${stat.color} rounded-2xl`}>{stat.icon}</div><span className={`text-[10px] font-black uppercase ${stat.color} ${stat.bg} px-2 py-1 rounded`}>{stat.trend}</span></div>
-                        {loading ? <Loader2 className="animate-spin text-slate-200" /> : (
-                            <div><h3 className="text-3xl font-black text-slate-900">{stat.value}</h3><p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{stat.label}</p></div>
-                        )}
+            {/* Public Hub Links */}
+            <div className="flex flex-col gap-6">
+                <div className="flex items-center gap-3 ml-2">
+                    <Library size={20} className="text-teal-600" />
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Institutional Resources</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <button onClick={() => handleQuickNav('culture')} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-5 hover:border-teal-500 transition-all group text-left">
+                        <div className="size-14 bg-teal-50 text-teal-600 flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform"><FlaskConical size={28}/></div>
+                        <div><h4 className="font-black text-slate-900 uppercase text-sm">Antibiogram</h4><p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Lab results hub</p></div>
                     </button>
-                ))}
+                    <button onClick={() => handleQuickNav('analytics')} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-5 hover:border-emerald-500 transition-all group text-left">
+                        <div className="size-14 bg-emerald-50 text-emerald-600 flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform"><FileSpreadsheet size={28}/></div>
+                        <div><h4 className="font-black text-slate-900 uppercase text-sm">Reporters</h4><p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Contribution log</p></div>
+                    </button>
+                    <button onClick={() => handleQuickNav('manual')} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-5 hover:border-emerald-600 transition-all group text-left">
+                        <div className="size-14 bg-emerald-50 text-emerald-700 flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform"><BookOpen size={28}/></div>
+                        <div><h4 className="font-black text-slate-900 uppercase text-sm">IPC Manual</h4><p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Policies & SOPs</p></div>
+                    </button>
+                    <button onClick={() => handleQuickNav('references')} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-5 hover:border-slate-400 transition-all group text-left">
+                        <div className="size-14 bg-slate-50 text-slate-600 flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform"><Library size={28}/></div>
+                        <div><h4 className="font-black text-slate-900 uppercase text-sm">References</h4><p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Guidelines & pathways</p></div>
+                    </button>
+                </div>
             </div>
+
+            {/* Surveillance Stats - Coordinator Only */}
+            {isAuthenticated && (
+                <div className="flex flex-col gap-6">
+                    <div className="flex items-center gap-3 ml-2">
+                        <TrendingUp size={20} className="text-primary" />
+                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Surveillance Summary</h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {stats.map((stat) => (
+                            <button key={stat.id} onClick={() => handleQuickNav(stat.id)} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4 text-left hover:border-primary transition-all group min-h-[160px]">
+                                <div className="flex items-center justify-between"><div className={`p-3 ${stat.bg} ${stat.color} rounded-2xl`}>{stat.icon}</div><span className={`text-[10px] font-black uppercase ${stat.color} ${stat.bg} px-2 py-1 rounded`}>{stat.trend}</span></div>
+                                {loading ? <Loader2 className="animate-spin text-slate-200" /> : (
+                                    <div><h3 className="text-3xl font-black text-slate-900">{stat.value}</h3><p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{stat.label}</p></div>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -348,69 +396,71 @@ const SurveillanceHub: React.FC = () => {
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex bg-slate-50 relative">
-      <aside className={`
-        fixed lg:sticky top-16 z-50 h-[calc(100vh-64px)] bg-slate-900 text-white transition-all duration-300 flex flex-col overflow-hidden
-        ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full lg:w-20 lg:translate-x-0'}
-      `}>
-        <div className="p-6 flex items-center justify-between min-w-[256px] lg:min-w-0">
-          {isSidebarOpen && <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Navigation</span>}
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-white/10 rounded-lg text-slate-400">
-            {isSidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
+      {isAuthenticated && (
+        <aside className={`
+            fixed lg:sticky top-16 z-50 h-[calc(100vh-64px)] bg-slate-900 text-white transition-all duration-300 flex flex-col overflow-hidden
+            ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full lg:w-20 lg:translate-x-0'}
+        `}>
+            <div className="p-6 flex items-center justify-between min-w-[256px] lg:min-w-0">
+            {isSidebarOpen && <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Navigation</span>}
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-white/10 rounded-lg text-slate-400">
+                {isSidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
+            </button>
+            </div>
 
-        <nav className="flex-1 px-3 space-y-6 overflow-y-auto custom-scrollbar min-w-[256px] lg:min-w-0 pb-10">
-          <div className="space-y-1">
-            {isSidebarOpen && <div className="px-4 py-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">Hub Modules</div>}
-            {mainModules.map(module => (
-              <button
-                key={module.id}
-                onClick={() => handleModuleSelect(module.id)}
-                className={`
-                  w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group relative
-                  ${activeModule === module.id ? getModeColor() + ' text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}
-                `}
-              >
-                <div className={`${activeModule === module.id ? 'text-white' : 'group-hover:text-white'}`}>
-                  {module.icon}
-                </div>
-                {isSidebarOpen && <span className="text-sm font-bold truncate">{module.label}</span>}
-              </button>
-            ))}
-          </div>
+            <nav className="flex-1 px-3 space-y-6 overflow-y-auto custom-scrollbar min-w-[256px] lg:min-w-0 pb-10">
+            <div className="space-y-1">
+                {isSidebarOpen && <div className="px-4 py-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">Hub Modules</div>}
+                {mainModules.map(module => (
+                <button
+                    key={module.id}
+                    onClick={() => handleModuleSelect(module.id)}
+                    className={`
+                    w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group relative
+                    ${activeModule === module.id ? getModeColor() + ' text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}
+                    `}
+                >
+                    <div className={`${activeModule === module.id ? 'text-white' : 'group-hover:text-white'}`}>
+                    {module.icon}
+                    </div>
+                    {isSidebarOpen && <span className="text-sm font-bold truncate">{module.label}</span>}
+                </button>
+                ))}
+            </div>
 
-          <div className="space-y-1">
-            {isSidebarOpen && (
-              <div className="flex items-center gap-2 px-4 py-2">
-                <div className="flex-1 h-px bg-slate-800"></div>
-                <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Resources & Lab</div>
-                <div className="flex-1 h-px bg-slate-800"></div>
-              </div>
-            )}
-            {!isSidebarOpen && <div className="h-px bg-slate-800 mx-4 my-4"></div>}
-            {universalModules.map(module => (
-              <button
-                key={module.id}
-                onClick={() => handleModuleSelect(module.id)}
-                className={`
-                  w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group relative
-                  ${activeModule === module.id ? 'bg-teal-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}
-                `}
-              >
-                <div className={`${activeModule === module.id ? 'text-white' : 'group-hover:text-white'}`}>
-                  {module.icon}
+            <div className="space-y-1">
+                {isSidebarOpen && (
+                <div className="flex items-center gap-2 px-4 py-2">
+                    <div className="flex-1 h-px bg-slate-800"></div>
+                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Resources & Lab</div>
+                    <div className="flex-1 h-px bg-slate-800"></div>
                 </div>
-                {isSidebarOpen && <span className="text-sm font-bold truncate">{module.label}</span>}
-              </button>
-            ))}
-          </div>
-        </nav>
-      </aside>
+                )}
+                {!isSidebarOpen && <div className="h-px bg-slate-800 mx-4 my-4"></div>}
+                {universalModules.map(module => (
+                <button
+                    key={module.id}
+                    onClick={() => handleModuleSelect(module.id)}
+                    className={`
+                    w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group relative
+                    ${activeModule === module.id ? 'bg-teal-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}
+                    `}
+                >
+                    <div className={`${activeModule === module.id ? 'text-white' : 'group-hover:text-white'}`}>
+                    {module.icon}
+                    </div>
+                    {isSidebarOpen && <span className="text-sm font-bold truncate">{module.label}</span>}
+                </button>
+                ))}
+            </div>
+            </nav>
+        </aside>
+      )}
 
       <main className="flex-1 min-w-0 flex flex-col">
         <header className="sticky top-16 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 sm:px-8 py-4 flex items-center justify-between">
            <div className="flex items-center gap-3">
-              {!isSidebarOpen && (
+              {isAuthenticated && !isSidebarOpen && (
                 <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg">
                   <Menu size={20} />
                 </button>
